@@ -8,10 +8,6 @@
 
 import UIKit
 
-extension UIView {
-
-}
-
 public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTransitioning {
 
   let duration: TimeInterval

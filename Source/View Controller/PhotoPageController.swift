@@ -26,7 +26,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
 
   public var immersedBackgroundColor: UIColor = UIColor.black
 
-  public var modally: Bool = false
+  public private(set) var modally: Bool = false
 
   private var userStartIndexPath: IndexPath = IndexPath(index: -1)
 
@@ -52,9 +52,9 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
 
   public var didScrollToPage: ((_ indexPath: IndexPath) -> Void)?
 
-  public var navigationOrientation: UIPageViewController.NavigationOrientation = .horizontal
+  public private(set) var navigationOrientation: UIPageViewController.NavigationOrientation = .horizontal
 
-  public var interPageSpacing: Double = 0
+  public private(set) var interPageSpacing: Double = 0
 
   public var loop: Bool = true
 
