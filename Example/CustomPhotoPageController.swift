@@ -8,13 +8,91 @@
 
 import UIKit
 import PhotoViewController
+import FLAnimatedImage
 
+
+/// myshow
+class MyPhotoShowController: PhotoShowController {
+  lazy var gifView: FLAnimatedImageView = FLAnimatedImageView(frame: .zero)
+  override func configImageView() {
+    super.configImageView()
+    if resource.type ~= .gif {
+      imageView.addSubview(gifView)
+    }
+  }
+
+  override open var resourceContentSize: CGSize? {
+    if let size = super.resourceContentSize {
+      return size
+    }
+    if resource.type ~= .gif {
+      return imageView.image?.size
+    }
+    return nil
+  }
+
+  override open func recalibrateImageViewFrame() {
+    super.recalibrateImageViewFrame()
+    if resource.type ~= .gif {
+      guard let resourceContentSize = resourceContentSize else { return }
+      recalibrateContentViewFrame(resourceSize: resourceContentSize)
+      gifView.frame = imageView.bounds
+    }
+  }
+
+  override func loadResource() {
+    super.loadResource()
+    if resource.type ~= .gif {
+      _ = resource.retrieving(.custom(gifView, imageView))
+    }
+  }
+
+  override open func addImageObserver() -> Void {
+    super.addImageObserver()
+    if resource.type ~= .gif {
+      imageView.addObserver(self, forKeyPath: #keyPath(UIImageView.image), options: [.new], context: nil)
+    }
+  }
+
+
+  override open func removeImageObserver() -> Void {
+    super.addImageObserver()
+    if resource.type ~= .gif {
+      imageView.removeObserver(self, forKeyPath: #keyPath(UIImageView.image))
+    }
+  }
+
+  open override func observeImageSize(forKeyPath keyPath: String?) -> Bool {
+    let ob = super.observeImageSize(forKeyPath: keyPath)
+    if ob {
+      return ob
+    }
+    if resource.type ~= .gif {
+      if keyPath == #keyPath(UIImageView.image) {
+        return true
+      }
+    }
+    return false
+  }
+
+
+}
+
+/// mypage
+class MyPagingController<T: IndexPathSearchable>: PhotoPageController<T> {
+  override func photoShow(modally: Bool, resource: MediaResource) -> UIViewController {
+    return MyPhotoShowController(modally: modally, resource: resource)
+  }
+}
+
+
+/// custom
 class CustomPhotoPageController: UIViewController {
-  var page: PhotoPageController<[MediaResource]>?
+  var page: MyPagingController<[MediaResource]>?
   var pageControl: UIPageControl?
   convenience init(modally: Bool, startIndex: IndexPath, resources: [[MediaResource]]) {
     self.init(nibName: nil, bundle: nil)
-    page = PhotoPageController(modally: modally, startIndexPath: startIndex, resources: resources)
+    page = MyPagingController(modally: modally, startIndexPath: startIndex, resources: resources)
   }
 
   override func viewDidLoad() {

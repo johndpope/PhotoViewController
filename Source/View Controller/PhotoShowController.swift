@@ -12,12 +12,12 @@ import AVFoundation
 
 func upsearch<T, U>(from starter: T, maximumSearch: Int, type: U.Type, father: (T?) -> T?) -> U? {
   var number = 0
-  var _nextResponder: T? = starter
-  while !(_nextResponder is U), number < maximumSearch {
-    _nextResponder = father(_nextResponder)
+  var _nextFinder: T? = starter
+  while !(_nextFinder is U), number < maximumSearch {
+    _nextFinder = father(_nextFinder)
     number += 1
   }
-  return _nextResponder as? U
+  return _nextFinder as? U
 }
 
 func drawImage(inSize size: CGSize, opaque: Bool = false, scale: CGFloat = 0, action: ((CGContext?) -> Void)) -> UIImage? {
@@ -290,6 +290,12 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     doubleTapGestureRecognizer.numberOfTapsRequired = 2
     singleTapGestureRecognizer.require(toFail: doubleTapGestureRecognizer)
     singleTapGestureRecognizer.require(toFail: dismissalGestureRecognizer)
+
+    if #available(iOS 9.1, *) {
+      if resource.type ~= .livePhoto {
+        singleTapGestureRecognizer.require(toFail: livePhotoView.playbackGestureRecognizer)
+      }
+    }
 
     view.addGestureRecognizer(doubleTapGestureRecognizer)
     view.addGestureRecognizer(dismissalGestureRecognizer)
