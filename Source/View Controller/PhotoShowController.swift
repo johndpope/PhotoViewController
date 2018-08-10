@@ -188,22 +188,32 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   }
 
   func transform(forTranslation translation: CGPoint) -> CGAffineTransform {
-
+    let center = centerForInteractiveTransform()
     if isZoomingAndRotating {
-      let center = CGPoint(x: imageView.bounds.midX, y: imageView.bounds.midY)
       let scale = pinchGestureRecognizer.scale.clamp(0, 1)
       let angle = rotationGestureRecognizer.rotation
       let scaleTransform = CGAffineTransform.identity.makeScale(to: scale, at: center, ratate: angle)
       let moveTransform = scaleTransform.concatenating(CGAffineTransform(translationX: translation.x, y: translation.y))
       return moveTransform
     } else {
-      let center = CGPoint(x: imageView.bounds.midX, y: imageView.bounds.midY)
       let scale = (1 - translation.y / UIScreen.main.bounds.height * scalingFator).clamp(0, 1)
       let scaleTransform = CGAffineTransform.identity.makeScale(to: scale, at: center)
       let moveDownTransform = scaleTransform.concatenating(CGAffineTransform(translationX: translation.x, y: translation.y))
       return moveDownTransform
     }
 
+  }
+
+  func centerForInteractiveTransform() -> CGPoint {
+    let center = CGPoint(x: imageView.bounds.midX, y: imageView.bounds.midY)
+    guard let resourceContentSize = resourceContentSize else { return center }
+    guard let contentMode = PhotoViewManager.default.contenMode(for: resourceContentSize) else { return center }
+    switch contentMode {
+    case .fitScreen:
+      return center
+    case .fitWidth:
+      return CGPoint(x: imageView.bounds.midX, y: view.bounds.midY)
+    }
   }
 
   public func beginInteractiveDismissalTransition() -> Void {
