@@ -183,8 +183,9 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     }
   }
 
-  var scalingFator: CGFloat = 0.9
-
+  var scalingFator: CGFloat {
+    return PhotoViewManager.default.interactiveDismissScaleFactor
+  }
 
   func transform(forTranslation translation: CGPoint) -> CGAffineTransform {
 
@@ -318,6 +319,11 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     if gestureRecognizer == rotationGestureRecognizer || gestureRecognizer == pinchGestureRecognizer {
       return scrollView.reachMinZoomScale
     }
+    if gestureRecognizer == dismissalGestureRecognizer, otherGestureRecognizer.view is UIScrollView {
+      if scrollView.contentOffset.y <= 0 {
+        return true
+      }
+    }
     if otherGestureRecognizer.view is UIScrollView {
       return false
     }
@@ -325,11 +331,18 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   }
 
   public var imageViewFrame: CGRect {
-    if #available(iOS 11.0, *) {
-      return imageView.frame.offsetBy(dx: scrollView.adjustedContentInset.left, dy: scrollView.adjustedContentInset.top)
-    } else {
-      return imageView.frame.offsetBy(dx: scrollView.contentInset.left, dy: scrollView.contentInset.top)
+    if imageView.image != nil {
+      if #available(iOS 11.0, *) {
+        return imageView.frame.offsetBy(dx: scrollView.adjustedContentInset.left, dy: scrollView.adjustedContentInset.top)
+      } else {
+        return imageView.frame.offsetBy(dx: scrollView.contentInset.left, dy: scrollView.contentInset.top)
+      }
+    } else if let image = PhotoViewManager.default.hintImage {
+      if let contentMode = PhotoViewManager.default.contenMode(for: image.size) {
+        return destinationResourceContentFrame(contentMode: contentMode, size: image.size).framOnWindow
+      }
     }
+    return view.bounds
   }
 
   public func configScrollView() -> Void {
@@ -450,21 +463,41 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     updateImmersingUI()
   }
 
-  public func recalibrateImageViewFrame() -> Void {
+  public var resourceContentSize: CGSize? {
     switch resource.type {
     case .image:
       if let image = imageView.image {
-        recalibrateContentViewFrame(resourceSize: image.size)
+        return image.size
       }
     case .livePhoto:
       if #available(iOS 9.1, *) {
         if let livePhoto = livePhotoView.livePhoto {
-          if recalibrateContentViewFrame(resourceSize: livePhoto.size) || recalibrateContentViewFrame(resourceSize: resource.contentSize) {
-            livePhotoView.frame = imageView.bounds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-              guard let strongself = self else { return }
-              strongself.createSnapshotOfResourceView()
-            }
+          if livePhoto.size.isValid {
+            return livePhoto.size
+          }
+          if resource.contentSize.isValid {
+            return resource.contentSize
+          }
+        }
+      }
+    default:
+      break
+    }
+    return nil
+  }
+
+  public func recalibrateImageViewFrame() -> Void {
+    guard let resourceContentSize = resourceContentSize else { return }
+    switch resource.type {
+    case .image:
+      recalibrateContentViewFrame(resourceSize: resourceContentSize)
+    case .livePhoto:
+      if #available(iOS 9.1, *) {
+        if recalibrateContentViewFrame(resourceSize: resourceContentSize) {
+          livePhotoView.frame = imageView.bounds
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            guard let strongself = self else { return }
+            strongself.createSnapshotOfResourceView()
           }
         }
       }
@@ -492,16 +525,51 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   }
 
   @discardableResult
-  public func recalibrateContentViewFrame(resourceSize: CGSize) -> Bool {
+  open func recalibrateContentViewFrame(resourceSize: CGSize) -> Bool {
     guard resourceSize.isValid else {
       return false
     }
-    var aframe = AVMakeRect(aspectRatio: resourceSize, insideRect: view.bounds)
-    aframe.origin = .zero
-    imageView.frame = aframe
+    guard let contentMode = PhotoViewManager.default.contenMode(for: resourceSize) else { return
+      false
+    }
+    let tuple = destinationResourceContentFrame(contentMode: contentMode, size: resourceSize)
+    imageView.frame = tuple.framOnScrollView
     scrollView.setZoomScale(1, animated: false)
-    centerizeImageView()
+    updateScrollViewInsets(false)
     return true
+  }
+
+  @discardableResult
+  open func destinationResourceContentFrame(contentMode: PhotoViewContentMode, size: CGSize) -> (framOnWindow: CGRect, framOnScrollView: CGRect) {
+    switch contentMode {
+    case .fitScreen:
+      return destinationContentFrameToAspectFit(size: size)
+    case .fitWidth(let position):
+      return destinationContentFrameToFitWidth(size: size, position: position)
+    }
+  }
+
+  open func destinationContentFrameToAspectFit(size: CGSize) -> (framOnWindow: CGRect, framOnScrollView: CGRect) {
+    var _frame = AVMakeRect(aspectRatio: size, insideRect: view.bounds)
+    let __frame = _frame
+    _frame.origin = .zero
+    return (__frame, _frame)
+  }
+
+  open func destinationContentFrameToFitWidth(size: CGSize, position: PhotoViewContentPosition) -> (framOnWindow: CGRect, framOnScrollView: CGRect) {
+    let bounds = view.bounds
+    var _frame = AVMakeRect(aspectRatio: size, insideRect: bounds)
+    _frame.origin = .zero
+    let scale = bounds.width / _frame.width
+    var __frame = _frame.applying(CGAffineTransform(scaleX: scale, y: scale))
+    let ___frame = __frame
+    switch position {
+    case .top:
+      __frame.origin = .zero
+    case .center:
+      __frame.origin = CGPoint(x: 0, y: -(__frame.height - bounds.height) / 2)
+    }
+    return (__frame, ___frame)
   }
 
   override open func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
@@ -523,15 +591,25 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   }
 
   public func scrollViewDidZoom(_ scrollView: UIScrollView) {
-    centerizeImageView()
+    updateScrollViewInsets(true)
   }
 
-  public func centerizeImageView() -> Void {
-    let imageViewSize = imageView.frame.size
-    let scrollViewSize = scrollView.bounds.size
-    let verticalPadding = max((scrollViewSize.height - imageViewSize.height) / 2, 0)
-    let horizontalPadding = max((scrollViewSize.width - imageViewSize.width) / 2, 0)
-    scrollView.contentInset = UIEdgeInsets(top: verticalPadding, left: horizontalPadding, bottom: verticalPadding, right: horizontalPadding)
+  public func updateScrollViewInsets(_ zooming: Bool) -> Void {
+    guard let resourceContentSize = resourceContentSize else { return }
+    guard let contentMode = PhotoViewManager.default.contenMode(for: resourceContentSize) else { return }
+    switch contentMode {
+    case .fitScreen:
+      let imageViewSize = imageView.frame.size
+      let scrollViewSize = scrollView.bounds.size
+      let verticalPadding = max((scrollViewSize.height - imageViewSize.height) / 2, 0)
+      let horizontalPadding = max((scrollViewSize.width - imageViewSize.width) / 2, 0)
+      scrollView.contentInset = UIEdgeInsets(top: verticalPadding, left: horizontalPadding, bottom: verticalPadding, right: horizontalPadding)
+    case .fitWidth(let position):
+      scrollView.contentInset = .zero
+      if !zooming, position ~= .center {
+        scrollView.setContentOffset(CGPoint(x: 0, y: (scrollView.contentSize.height - scrollView.frame.height) / 2), animated: false)
+      }
+    }
   }
 
 }

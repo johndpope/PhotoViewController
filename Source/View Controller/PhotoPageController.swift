@@ -109,7 +109,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   }
 
   @available(iOS 9.0, *)
-  func addConstraint<T>(fromView: UIView?, toView: UIView?, getAnchor: (UIView) -> NSLayoutAnchor<T>) {
+  func addConstraint<R>(fromView: UIView?, toView: UIView?, getAnchor: (UIView) -> NSLayoutAnchor<R>) {
     guard let view1 = fromView else { return }
     guard let view2 = toView else { return }
     getAnchor(view1).constraint(equalTo: getAnchor(view2)).isActive = true

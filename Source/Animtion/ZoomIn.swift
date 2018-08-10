@@ -22,6 +22,8 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
   let provider: ImageZoomProvider
   let animationWillBegin: (() -> Void)?
   let animationDidFinish: ((Bool) -> Void)?
+  public var prepareAnimation: ((_ imageView: UIImageView) -> Void)?
+  public var userAnimation: ((_ isInteractive: Bool, _ imageView: UIImageView) -> Void)?
 
   public init(duration: TimeInterval,
               option: ImageZoomAnimationOption,
@@ -94,8 +96,10 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
 
 
     guard let image = image else { aborted = true; return }
+    PhotoViewManager.default.hintImage = image
     guard let sourceImageViewFrame = fromImageViewFrame else { aborted = true; return }
     guard let toImageViewFrame = provider.currentImageViewFrame else { aborted = true; return }
+
 
     fromVC.view.isHidden = false
     toVC.view.isHidden = false
@@ -109,22 +113,27 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
     mockSourceImageView.clipsToBounds = true
     mockSourceImageView.contentMode = fromImageViewContentMode
     mockSourceImageView.frame = sourceImageViewFrame
+    prepareAnimation?(mockSourceImageView)
     containerView.addSubview(mockSourceImageView)
 
-    let animtions: () -> Void = {
+    let animtions: () -> Void = { [weak self] in
       toSnapshotView.alpha = 1
       fromSnapshotView.alpha = 0
       mockSourceImageView.frame = toImageViewFrame
       mockSourceImageView.contentMode = .scaleAspectFit
+      self?.userAnimation?(transitionContext.isInteractive, mockSourceImageView)
     }
-    let completion: () -> Void = {
-      fromSnapshotView.removeFromSuperview()
-      toSnapshotView.removeFromSuperview()
-      mockSourceImageView.removeFromSuperview()
-      toVC.view.isHidden = false
+    let completion: () -> Void = { [weak self] in
+      defer {
+        fromSnapshotView.removeFromSuperview()
+        toSnapshotView.removeFromSuperview()
+        mockSourceImageView.removeFromSuperview()
+        toVC.view.isHidden = false
+        transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
+      }
+      guard let self = self else { return }
       self.provider.currentImageViewHidden = false
       self.animationDidFinish?(!transitionContext.transitionWasCancelled)
-      transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
     }
     switch option {
     case let .fallback(springDampingRatio, initialSpringVelocity, options):

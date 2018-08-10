@@ -9,7 +9,7 @@
 import UIKit
 import PhotoViewController
 import AlamofireImage
-import CoreServices
+import MobileCoreServices
 import PhotosUI
 
 extension UIView {
@@ -17,6 +17,8 @@ extension UIView {
     return subviews.compactMap({ $0 as? T }).first
   }
 }
+
+let cornerRadius: CGFloat = 10
 
 class ViewController: UITableViewController {
 
@@ -94,6 +96,8 @@ class ViewController: UITableViewController {
     cell.contentView.firstSubview(ofType: UILabel.self)?.text = "\(indexPath)"
     imageView?.contentMode = imageContentMode
     imageView?.image = nil
+    imageView?.layer.cornerRadius = cornerRadius
+    imageView?.clipsToBounds = true
     let resource = datum[indexPath.section][indexPath.row]
     switch resource.type {
     case .image:
@@ -244,13 +248,23 @@ extension ViewController {
     guard let viewController = viewController as? CustomPhotoPageController else { return nil }
     let image = imageView.image
 
-    return ZoomInAnimatedTransitioning(duration: showingInterval,
+    let t = ZoomInAnimatedTransitioning(duration: showingInterval,
                                        option: animationOption(forShowing: true),
                                        animator: ImageZoomAnimator.showFromImageView(imageView, image: image, provider: viewController.page!),
                                        animationWillBegin: {
                                         imageView.isHidden = true },
                                        animationDidFinish: { _ in
                                         imageView.isHidden = false })
+    t.prepareAnimation = { imageView in
+      imageView.clipsToBounds = true
+      imageView.layer.cornerRadius = cornerRadius
+    }
+    t.userAnimation = { _, imageView in
+      //FIXME: cornerRadius = 0, flick the screen, when using local photo on iOS 11
+      // imageView.layer.cornerRadius = 0
+      imageView.layer.cornerRadius = 1
+    }
+    return t
   }
 
   func transitionFrom(dismissed viewController: UIViewController) -> UIViewControllerAnimatedTransitioning? {
@@ -260,13 +274,23 @@ extension ViewController {
     guard let cell = tableView.cellForRow(at: selectedIndexP) else { return nil }
     guard let imageView = cell.contentView.firstSubview(ofType: UIImageView.self) else { return nil }
 
-    return ZoomOutAnimatedTransitioning(duration: dismissInterval,
+    let t = ZoomOutAnimatedTransitioning(duration: dismissInterval,
                                         option: animationOption(forShowing: false),
                                         animator: ImageZoomAnimator.dismissToImageView(imageView, provider: viewController.page!),
                                         animationWillBegin: {
                                           imageView.isHidden = true },
                                         animationDidFinish: { _ in
                                           imageView.isHidden = false })
+    t.prepareAnimation = { imageView in
+      imageView.clipsToBounds = true
+      imageView.layer.cornerRadius = 0
+    }
+    t.userAnimation = { interactive, imageView in
+      if !interactive {
+        imageView.layer.cornerRadius = cornerRadius
+      }
+    }
+    return t
   }
 
 }
@@ -320,37 +344,74 @@ extension ViewController: UIImagePickerControllerDelegate {
 
   @objc func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
     defer {
+      tableView.reloadData()
       picker.dismiss(animated: true, completion: nil)
     }
-    if #available(iOS 9.1, *) {
-      var __asset: PHAsset?
-      if let live = info[.livePhoto] as? PHLivePhoto {
-        var size: CGSize = .zero
-        if live.size.isValid {
-          size = live.size
-        } else {
-          if #available(iOS 11.0, *) {
-            if let asset = info[.phAsset] as? PHAsset, CGSize(width: asset.pixelWidth, height: asset.pixelHeight).isValid {
-              size = CGSize(width: asset.pixelWidth, height: asset.pixelHeight)
-              __asset = asset
-
-            }
-          }
-        }
-        datum[0].append(MediaResource(setLivePhotoBlock: { (photoView, imageView) in
-          if let asset = __asset {
-            PHImageManager.default().requestImage(for: asset, targetSize: .zero, contentMode: .default, options: nil) { (image, _) in
-              DispatchQueue.main.async {
-                imageView?.image = image
+    var handled: Bool = false
+    if let type = info[.mediaType] as? String {
+      if #available(iOS 9.1, *) {
+        if type == kUTTypeLivePhoto as String {
+          handled = true
+          var __asset: PHAsset?
+          if let live = info[.livePhoto] as? PHLivePhoto {
+            var size: CGSize = .zero
+            if live.size.isValid {
+              size = live.size
+            } else {
+              if #available(iOS 11.0, *) {
+                if let asset = info[.phAsset] as? PHAsset, CGSize(width: asset.pixelWidth, height: asset.pixelHeight).isValid {
+                  size = CGSize(width: asset.pixelWidth, height: asset.pixelHeight)
+                  __asset = asset
+                }
               }
             }
+            datum[0].append(MediaResource(setLivePhotoBlock: { (photoView, imageView) in
+              __asset?.loadImage(completion: { (image) in
+                imageView?.image = image
+              })
+              photoView?.livePhoto = live
+              return size
+            }))
           }
-          DispatchQueue.main.async {
-            photoView?.livePhoto = live
+        }
+      }
+
+      if !handled {
+        if type == kUTTypeImage as String {
+          if #available(iOS 11.0, *) {
+            if let asset = info[.phAsset] as? PHAsset {
+              datum[0].append(MediaResource(setImageBlock: { (imageView) in
+                asset.loadImage(completion: { (image) in
+                  imageView?.image = image
+                })
+              }))
+            }
+          } else if let edited = info[.editedImage] as? UIImage {
+            datum[0].append(MediaResource(setImageBlock: { (imageView) in
+              imageView?.image = edited
+            }))
+          } else if let original = info[.originalImage] as? UIImage {
+            datum[0].append(MediaResource(setImageBlock: { (imageView) in
+              imageView?.image = original
+            }))
           }
-          return size
-        }))
-        tableView.reloadData()
+        }
+      }
+    }
+  }
+}
+
+extension PHAsset {
+  func loadImage(size: CGSize = CGSize(width: 500, height: 500), completion: @escaping (UIImage?) -> Void) -> Void {
+    PHImageManager.default().requestImage(for: self, targetSize: size, contentMode: .aspectFit, options: nil) { (image, info) in
+      var isDegraded: Bool = false
+      if let down = info?[PHImageResultIsDegradedKey] as? Bool, down {
+        isDegraded = true
+      }
+      if !isDegraded {
+        DispatchQueue.main.async {
+          completion(image)
+        }
       }
     }
   }

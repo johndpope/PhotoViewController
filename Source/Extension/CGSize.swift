@@ -12,4 +12,7 @@ public extension CGSize {
   public var isValid: Bool {
     return width > 0 && height > 0
   }
+  public var aspectRatio: CGFloat {
+    return width / height
+  }
 }

@@ -26,7 +26,15 @@ public enum PhotoImmersingState {
   case immersed
 }
 
+public enum PhotoViewContentPosition {
+  case top
+  case center
+}
 
+public enum PhotoViewContentMode {
+  case fitScreen
+  case fitWidth(PhotoViewContentPosition)
+}
 
 open class PhotoViewManager {
 
@@ -43,6 +51,8 @@ open class PhotoViewManager {
       notificationCenter.post(name: NSNotification.Name.PhotoViewControllerImmersionDidChange, object: nil)
     }
   }
+
+  public var hintImage: UIImage?
 
   public var viewTapAction: PhotoViewTapAction = .toggleImmersingState
 
@@ -63,6 +73,9 @@ open class PhotoViewManager {
     }
   }
 
+  public var interactiveDismissScaleFactor: CGFloat = 0.5
+
+
   public func forceSetImmersingState(_ state: PhotoImmersingState) {
     if enabledImmersingState.contains(state) {
       immersingState = state
@@ -79,6 +92,8 @@ open class PhotoViewManager {
 
   public var userIndexPathBlock: (( _ templateIndexPath: IndexPath, _ pagingIndexPath: IndexPath) -> IndexPath)?
 
+  public var contentModeBlock: (( _ size: CGSize) -> PhotoViewContentMode?)?
+
   public func pagingIndexPath(form userIndexPath: IndexPath, desiredLength: Int) -> IndexPath {
     return pagingIndexPathBlock?(userIndexPath, desiredLength) ?? IndexPath(indexes: userIndexPath.suffix(desiredLength))
   }
@@ -87,5 +102,18 @@ open class PhotoViewManager {
     return userIndexPathBlock?(templateIndexPath, pagingIndexPath) ?? templateIndexPath.dropLast(pagingIndexPath.count).appending(pagingIndexPath)
   }
 
+  public func contenMode(for size: CGSize) -> PhotoViewContentMode? {
+    guard size.isValid else { return nil }
+    return contentModeBlock?(size) ?? defaultContentMode(for:size)
+  }
+
+  private func defaultContentMode(for size: CGSize) -> PhotoViewContentMode? {
+    guard size.isValid else { return nil }
+    if size.aspectRatio < UIScreen.main.bounds.size.aspectRatio {
+      return .fitWidth(.center)
+    } else {
+      return .fitScreen
+    }
+  }
 
 }

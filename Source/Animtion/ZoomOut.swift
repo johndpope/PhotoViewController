@@ -18,6 +18,8 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
   let animationWillBegin: (() -> Void)?
   let animationDidFinish: ((Bool) -> Void)?
   var imageViewTransformBlock: ((CGAffineTransform) -> Void)?
+  public var prepareAnimation: ((_ imageView: UIImageView) -> Void)?
+  public var userAnimation: ((_ isInteractive: Bool, _ imageView: UIImageView) -> Void)?
 
   @available(iOS 10.0, *)
   var animator: UIViewPropertyAnimator? {
@@ -120,7 +122,6 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
     guard let toImageViewFrame = toImageViewFrame else { aborted = true; return }
     guard let fromImageViewFrame = provider.currentImageViewFrame else { aborted = true; return }
 
-
     fromVC.view.isHidden = false
     toVC.view.isHidden = false
 
@@ -131,6 +132,7 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
     mockSourceImageView.clipsToBounds = true
     mockSourceImageView.contentMode = .scaleAspectFit
     mockSourceImageView.frame = fromImageViewFrame
+    prepareAnimation?(mockSourceImageView)
     containerView.addSubview(mockSourceImageView)
 
     if let interactiveController = interactiveController {
@@ -141,6 +143,7 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
 
     let animtions: (_ interactive: Bool) -> Void = { [weak self] interactive in
       fromSnapshotView.alpha = 0
+      self?.userAnimation?(interactive, mockSourceImageView)
       if !interactive {
         mockSourceImageView.transform = .identity
         mockSourceImageView.frame = toImageViewFrame
@@ -149,22 +152,25 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
       }
     }
 
-    let completion: () -> Void = {
+    let completion: () -> Void = { [weak self] in
+      defer {
+        mockSourceImageView.removeFromSuperview()
+        toSnapshotView.removeFromSuperview()
+        fromSnapshotView.removeFromSuperview()
+        transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
+        // for status bar
+        PhotoViewManager.default.resetImmersingState()
+      }
+      guard let self = self else { return }
       if let interactiveController = self.interactiveController, interactiveController.observedInteractive {
         interactiveController.removeObserver(self, forKeyPath: #keyPath(ZoomOutAnimatedInteractiveController.progress))
         interactiveController.removeObserver(self, forKeyPath: #keyPath(ZoomOutAnimatedInteractiveController.transform))
       }
       self.animationDidFinish?(!transitionContext.transitionWasCancelled)
-      mockSourceImageView.removeFromSuperview()
-      toSnapshotView.removeFromSuperview()
-      fromSnapshotView.removeFromSuperview()
       self.provider.currentImageViewHidden = false
       if self.provider.modally && !transitionContext.transitionWasCancelled {
         containerView.superview?.addSubview(toVC.view)
       }
-      transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
-      // for status bar
-      PhotoViewManager.default.resetImmersingState()
     }
     imageViewTransformBlock = { [weak mockSourceImageView] in
       mockSourceImageView?.transform = $0
