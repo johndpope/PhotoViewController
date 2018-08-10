@@ -38,12 +38,10 @@ func drawImage(inSize size: CGSize, opaque: Bool = false, scale: CGFloat = 0, ac
 }
 
 extension CGAffineTransform {
-  func makeScale(to scale: CGFloat, at point: CGPoint, ratate angle: CGFloat = 0) -> CGAffineTransform {
-    let moveToOriginTransform = CGAffineTransform(translationX: -point.x, y: -point.y)
-    let scaleTransform = moveToOriginTransform.concatenating(CGAffineTransform(scaleX: scale, y: scale))
+  func makeScale(to scale: CGFloat, ratate angle: CGFloat = 0) -> CGAffineTransform {
+    let scaleTransform = self.concatenating(CGAffineTransform(scaleX: scale, y: scale))
     let rotateTransform = scaleTransform.concatenating(CGAffineTransform(rotationAngle: angle))
-    let moveBackTransform = rotateTransform.concatenating(CGAffineTransform(translationX: point.x * scale, y: point.y * scale))
-    return moveBackTransform
+    return rotateTransform
   }
 }
 
@@ -188,32 +186,19 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   }
 
   open func transform(forTranslation translation: CGPoint) -> CGAffineTransform {
-    let center = centerForInteractiveTransform()
     if isZoomingAndRotating {
       let scale = pinchGestureRecognizer.scale.clamp(0, 1)
       let angle = rotationGestureRecognizer.rotation
-      let scaleTransform = CGAffineTransform.identity.makeScale(to: scale, at: center, ratate: angle)
+      let scaleTransform = CGAffineTransform.identity.makeScale(to: scale, ratate: angle)
       let moveTransform = scaleTransform.concatenating(CGAffineTransform(translationX: translation.x, y: translation.y))
       return moveTransform
     } else {
       let scale = (1 - translation.y / UIScreen.main.bounds.height * scalingFator).clamp(0, 1)
-      let scaleTransform = CGAffineTransform.identity.makeScale(to: scale, at: center)
+      let scaleTransform = CGAffineTransform.identity.makeScale(to: scale)
       let moveDownTransform = scaleTransform.concatenating(CGAffineTransform(translationX: translation.x, y: translation.y))
       return moveDownTransform
     }
 
-  }
-
-  open func centerForInteractiveTransform() -> CGPoint {
-    let center = CGPoint(x: imageView.bounds.midX, y: imageView.bounds.midY)
-    guard let resourceContentSize = resourceContentSize else { return center }
-    guard let contentMode = PhotoViewManager.default.contenMode(for: resourceContentSize) else { return center }
-    switch contentMode {
-    case .fitScreen:
-      return center
-    case .fitWidth:
-      return CGPoint(x: imageView.bounds.midX, y: view.bounds.midY)
-    }
   }
 
   open func beginInteractiveDismissalTransition() -> Void {
