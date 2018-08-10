@@ -381,29 +381,27 @@ extension ViewController: UIImagePickerControllerDelegate {
         if type == kUTTypeImage as String {
           if #available(iOS 11.0, *) {
 
-            /// deprecated, for demo only
-            if let url = info[.referenceURL] as? URL {
-
-              if url.absoluteString.uppercased().contains("GIF"), let asset = info[.phAsset] as? PHAsset {
-                datum[0].append(MediaResource(type: .gif, identifier: UUID().uuidString, retrieving: {
-                  switch $0 {
-                  case let .custom(gifView, imageView):
-                    if let gifView = gifView as? FLAnimatedImageView {
-                      PHImageManager.default().requestImageData(for: asset, options: nil, resultHandler: { (data, _, _, _) in
-                        let fl = FLAnimatedImage(gifData: data!)!
-                        imageView?.image = fl.posterImage
-                        gifView.animatedImage = fl
-                      })
-                    }
-                    break
-                  default:
-                    break
+            /// referenceURL is deprecated, for demo only
+            if let url = info[.referenceURL] as? URL, url.absoluteString.uppercased().contains("GIF"), let asset = info[.phAsset] as? PHAsset {
+              datum[0].append(MediaResource(type: .gif, identifier: UUID().uuidString, retrieving: {
+                switch $0 {
+                case let .custom(gifView, imageView):
+                  if let gifView = gifView as? FLAnimatedImageView {
+                    PHImageManager.default().requestImageData(for: asset, options: nil, resultHandler: { (data, _, _, _) in
+                      let fl = FLAnimatedImage(gifData: data!)!
+                      imageView?.image = fl.posterImage
+                      gifView.animatedImage = fl
+                    })
                   }
-                  return nil
-                }))
-              }
+                  break
+                default:
+                  break
+                }
+                return nil
+              }))
               return
             }
+
             if let asset = info[.phAsset] as? PHAsset {
               datum[0].append(MediaResource(setImageBlock: { (imageView) in
                 asset.loadImage(completion: { (image) in
@@ -412,6 +410,7 @@ extension ViewController: UIImagePickerControllerDelegate {
               }))
               return
             }
+            
           }
 
           if let edited = info[.editedImage] as? UIImage {
