@@ -84,7 +84,7 @@ extension Array: IndexPathSearchable where Element: IndexPathSearchable {
   }
 
   public func firstIndexPath(where predicate: (MediaResource) -> Bool) -> IndexPath? {
-    return allIndexPaths(where: predicate, matchFirst: true).first.map({ IndexPath(indexes: $0) })
+    return allIndexPaths(where: predicate, matchFirst: true).first
   }
 
   func unsafeLoop(indexPath: IndexPath, _ action: (([Any], Int) -> Void)) -> Void {

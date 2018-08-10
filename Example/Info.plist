@@ -34,6 +34,12 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>pick Live Photo</string>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>pick Live Photo</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>pick Live Photo</string>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

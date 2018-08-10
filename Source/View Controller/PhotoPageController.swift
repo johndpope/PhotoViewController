@@ -6,7 +6,7 @@
 //  Copyright © 2018 Prime. All rights reserved.
 //
 
-import Foundation
+import UIKit
 
 
 open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPageViewControllerDelegate, UIPageViewControllerDataSource, ImageZoomProvider {
@@ -108,32 +108,51 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     PhotoViewManager.default.notificationCenter.removeObserver(self)
   }
 
+  @available(iOS 9.0, *)
+  func addConstraint<T>(fromView: UIView?, toView: UIView?, getAnchor: (UIView) -> NSLayoutAnchor<T>) {
+    guard let view1 = fromView else { return }
+    guard let view2 = toView else { return }
+    getAnchor(view1).constraint(equalTo: getAnchor(view2)).isActive = true
+  }
+
+  func addConstraint(fromView: UIView?, toView: UIView?, attribute: NSLayoutConstraint.Attribute) {
+    guard let view1 = fromView else { return }
+    guard let view2 = toView else { return }
+    NSLayoutConstraint(item: view1, attribute: attribute, relatedBy: .equal, toItem: view2, attribute: attribute, multiplier: 1.0, constant: 0.0).isActive = true
+  }
+
   open func addPage() -> Void {
     addChild(pageController)
     pageController.didMove(toParent: self)
     view.addSubview(pageController.view)
     pageController.view.backgroundColor = UIColor.clear
 
-    func addConstraint<T>(fromView: UIView?, toView: UIView?, getAnchor: (UIView) -> NSLayoutAnchor<T>) {
-      guard let view1 = fromView else { return }
-      guard let view2 = toView else { return }
-      getAnchor(view1).constraint(equalTo: getAnchor(view2)).isActive = true
-    }
 
-    addConstraint(fromView: pageController.view, toView: view, getAnchor: { $0.topAnchor })
-    addConstraint(fromView: pageController.view, toView: view, getAnchor: { $0.bottomAnchor })
-    addConstraint(fromView: pageController.view, toView: view, getAnchor: { $0.leftAnchor })
-    addConstraint(fromView: pageController.view, toView: view, getAnchor: { $0.rightAnchor })
+    if #available(iOS 9.0, *) {
+      addConstraint(fromView: pageController.view, toView: view, getAnchor: { $0.topAnchor })
+      addConstraint(fromView: pageController.view, toView: view, getAnchor: { $0.bottomAnchor })
+      addConstraint(fromView: pageController.view, toView: view, getAnchor: { $0.leftAnchor })
+      addConstraint(fromView: pageController.view, toView: view, getAnchor: { $0.rightAnchor })
+    } else {
+      addConstraint(fromView: pageController.view, toView: view, attribute: .top)
+      addConstraint(fromView: pageController.view, toView: view, attribute: .bottom)
+      addConstraint(fromView: pageController.view, toView: view, attribute: .left)
+      addConstraint(fromView: pageController.view, toView: view, attribute: .right)
+      // Fallback on earlier versions
+    }
 
     pageController.delegate = self
     pageController.dataSource = self
     scrollTo(page: pagingStartIndexPath, forward: true)
   }
 
-
   open func scrollTo(page: IndexPath, forward: Bool, animated: Bool = false) -> Void {
     pagingCurrentIndexPath = page
-    pageController.setViewControllers([PhotoShowController(modally: modally, resource: resources[resource: page])], direction: forward ? .forward : .reverse, animated: animated, completion: nil)
+    pageController.setViewControllers([photoShow(modally: modally, resource: resources[resource: page])], direction: forward ? .forward : .reverse, animated: animated, completion: nil)
+  }
+
+  open func photoShow(modally: Bool, resource: MediaResource) -> UIViewController {
+    return PhotoShowController(modally: modally, resource: resource)
   }
 
   open func indexOf(viewController: UIViewController) -> IndexPath? {
@@ -198,7 +217,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     #if DEBUG
     print("moving to page \(previousIndex)")
     #endif
-    return PhotoShowController(modally: modally, resource: resources[resource: previousIndex])
+    return photoShow(modally: modally, resource: resources[resource: previousIndex])
   }
 
   public func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
@@ -207,7 +226,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     #if DEBUG
     print("moving to page \(nextIndex)")
     #endif
-    return PhotoShowController(modally: modally, resource: resources[resource: nextIndex])
+    return photoShow(modally: modally, resource: resources[resource: nextIndex])
   }
 
   public func pageViewController(_ pageViewController: UIPageViewController, didFinishAnimating finished: Bool, previousViewControllers: [UIViewController], transitionCompleted completed: Bool) {

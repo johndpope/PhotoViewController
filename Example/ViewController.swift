@@ -9,7 +9,8 @@
 import UIKit
 import PhotoViewController
 import AlamofireImage
-
+import CoreServices
+import PhotosUI
 
 extension UIView {
   func firstSubview<T>(ofType type: T.Type) -> T? {
@@ -22,15 +23,16 @@ class ViewController: UITableViewController {
   var selectedIndexP: IndexPath?
 
   lazy var datum: [[MediaResource]] = {
-    var array: [MediaResource] =
-      (0...10).map({ String(format: "https://raw.githubusercontent.com/onevcat/Kingfisher/master/images/kingfisher-%d.jpg", $0) })
+    var array: [[MediaResource]] = [0, 1].map { _ -> [MediaResource] in
+      return (0...10).map({ String(format: "https://raw.githubusercontent.com/onevcat/Kingfisher/master/images/kingfisher-%d.jpg", $0) })
         .map({ urlString in
           return MediaResource(setImageBlock: { imageView in
             imageView?.af_setImage(withURL: URL(string: urlString)!)
           })
         })
-    // "https://raw.githubusercontent.com/onevcat/Kingfisher/master/images/kingfisher-0.jpg" is for testing HTTP-404 not found
-    return [array, array]
+      // "https://raw.githubusercontent.com/onevcat/Kingfisher/master/images/kingfisher-0.jpg" is for testing HTTP-404 not found
+    }
+    return array
   }()
 
   override func viewDidLoad() {
@@ -40,7 +42,20 @@ class ViewController: UITableViewController {
       self.tableView.reloadData()
     }
     navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Setting", style: UIBarButtonItem.Style.plain, target: self, action: #selector(gotoSetting))
+    navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Photos", style: UIBarButtonItem.Style.plain, target: self, action: #selector(gotoPicker))
     navigationController?.delegate = self
+  }
+
+  @objc func gotoPicker() -> Void {
+    PHPhotoLibrary.requestAuthorization { _ in }
+    let p = UIImagePickerController(nibName: nil, bundle: nil)
+    if #available(iOS 9.1, *) {
+      p.mediaTypes = [kUTTypeLivePhoto as String, kUTTypeImage as String]
+    } else {
+      // Fallback on earlier versions
+    }
+    p.delegate = self
+    navigationController?.present(p, animated: true, completion: nil)
   }
 
   @objc func gotoSetting() -> Void {
@@ -79,7 +94,17 @@ class ViewController: UITableViewController {
     cell.contentView.firstSubview(ofType: UILabel.self)?.text = "\(indexPath)"
     imageView?.contentMode = imageContentMode
     imageView?.image = nil
-    datum[indexPath.section][indexPath.row].display(inImageView: imageView)
+    let resource = datum[indexPath.section][indexPath.row]
+    switch resource.type {
+    case .image:
+      resource.display(inImageView: imageView)
+    case .livePhoto:
+      if #available(iOS 9.1, *) {
+        resource.displayLivePhoto(inLivePhotView: nil, inImageView: imageView)
+      }
+    default:
+      break
+    }
     return cell
   }
 
@@ -231,6 +256,7 @@ extension ViewController {
   func transitionFrom(dismissed viewController: UIViewController) -> UIViewControllerAnimatedTransitioning? {
     guard let viewController = viewController as? CustomPhotoPageController else { return nil }
     let selectedIndexP = viewController.page!.userCurrentIndexPath
+    tableView.scrollToRow(at: selectedIndexP, at: .none, animated: false)
     guard let cell = tableView.cellForRow(at: selectedIndexP) else { return nil }
     guard let imageView = cell.contentView.firstSubview(ofType: UIImageView.self) else { return nil }
 
@@ -284,3 +310,48 @@ extension ViewController: UINavigationControllerDelegate {
 
 }
 
+
+
+// MARK: - pick photo
+extension ViewController: UIImagePickerControllerDelegate {
+  @objc func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+    picker.dismiss(animated: true, completion: nil)
+  }
+
+  @objc func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+    defer {
+      picker.dismiss(animated: true, completion: nil)
+    }
+    if #available(iOS 9.1, *) {
+      var __asset: PHAsset?
+      if let live = info[.livePhoto] as? PHLivePhoto {
+        var size: CGSize = .zero
+        if live.size.isValid {
+          size = live.size
+        } else {
+          if #available(iOS 11.0, *) {
+            if let asset = info[.phAsset] as? PHAsset, CGSize(width: asset.pixelWidth, height: asset.pixelHeight).isValid {
+              size = CGSize(width: asset.pixelWidth, height: asset.pixelHeight)
+              __asset = asset
+
+            }
+          }
+        }
+        datum[0].append(MediaResource(setLivePhotoBlock: { (photoView, imageView) in
+          if let asset = __asset {
+            PHImageManager.default().requestImage(for: asset, targetSize: .zero, contentMode: .default, options: nil) { (image, _) in
+              DispatchQueue.main.async {
+                imageView?.image = image
+              }
+            }
+          }
+          DispatchQueue.main.async {
+            photoView?.livePhoto = live
+          }
+          return size
+        }))
+        tableView.reloadData()
+      }
+    }
+  }
+}

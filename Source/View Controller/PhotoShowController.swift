@@ -7,7 +7,7 @@
 //
 
 import Foundation
-
+import PhotosUI
 import AVFoundation
 
 func upsearch<T, U>(from starter: T, maximumSearch: Int, type: U.Type, father: (T?) -> T?) -> U? {
@@ -18,6 +18,23 @@ func upsearch<T, U>(from starter: T, maximumSearch: Int, type: U.Type, father: (
     number += 1
   }
   return _nextResponder as? U
+}
+
+func drawImage(inSize size: CGSize, opaque: Bool = false, scale: CGFloat = 0, action: ((CGContext?) -> Void)) -> UIImage? {
+  if #available(iOS 10.0, *) {
+    let format = UIGraphicsImageRendererFormat.default()
+    format.opaque = opaque
+    format.scale = scale
+    return UIGraphicsImageRenderer(size: size).image { (context) in
+      action(context.cgContext)
+    }
+  } else {
+    UIGraphicsBeginImageContextWithOptions(size, opaque, scale)
+    action(UIGraphicsGetCurrentContext())
+    let image = UIGraphicsGetImageFromCurrentImageContext()
+    UIGraphicsEndImageContext()
+    return image
+  }
 }
 
 extension CGAffineTransform {
@@ -45,6 +62,8 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   let resource: MediaResource
   let scrollView: UIScrollView
   let imageView: UIImageView
+  @available(iOS 9.1, *)
+  lazy var livePhotoView: PHLivePhotoView = PHLivePhotoView(frame: .zero)
   var isStatusBarHidden: Bool = false
 
   public init(modally: Bool, resource: MediaResource) {
@@ -353,15 +372,75 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     imageView.contentMode = .scaleAspectFit
     scrollView.addSubview(imageView)
     imageView.frame = scrollView.bounds
+
+    if #available(iOS 9.1, *) {
+      if resource.type ~= .livePhoto {
+        livePhotoView.contentMode = .scaleAspectFit
+        imageView.addSubview(livePhotoView)
+        imageView.isUserInteractionEnabled = true
+
+        let livePhotoBadge = UIImageView(image: PHLivePhotoView.livePhotoBadgeImage(options: [.overContent]))
+        imageView.addSubview(livePhotoBadge)
+      }
+    }
   }
 
   public func loadResource() -> Void {
-    resource.display(inImageView: imageView)
+    switch resource.type {
+    case .image:
+      resource.display(inImageView: imageView)
+    case .livePhoto:
+      if #available(iOS 9.1, *) {
+        resource.displayLivePhoto(inLivePhotView: livePhotoView, inImageView: imageView)
+      }
+    default:
+      break
+    }
   }
 
   public func addImageObserver() -> Void {
-    imageView.addObserver(self, forKeyPath: #keyPath(UIImageView.image), options: [.new], context: nil)
+    switch resource.type {
+    case .image:
+      imageView.addObserver(self, forKeyPath: #keyPath(UIImageView.image), options: [.new], context: nil)
+    case .livePhoto:
+      if #available(iOS 9.1, *) {
+        livePhotoView.addObserver(self, forKeyPath: #keyPath(PHLivePhotoView.livePhoto), options: [.new], context: nil)
+      }
+    default:
+      break
+    }
   }
+
+
+  public func removeImageObserver() -> Void {
+    switch resource.type {
+    case .image:
+      imageView.removeObserver(self, forKeyPath: #keyPath(UIImageView.image))
+    case .livePhoto:
+      if #available(iOS 9.1, *) {
+        livePhotoView.removeObserver(self, forKeyPath: #keyPath(PHLivePhotoView.livePhoto))
+      }
+    default:
+      break
+    }
+  }
+
+  public func observeImageSize(forKeyPath keyPath: String?) -> Bool {
+    switch resource.type {
+    case .image:
+      if keyPath == #keyPath(UIImageView.image) {
+        return true
+      }
+    case .livePhoto:
+      if keyPath == #keyPath(PHLivePhotoView.livePhoto) {
+        return true
+      }
+    default:
+      break
+    }
+    return false
+  }
+
 
   public func addImmersionObserver() {
     PhotoViewManager.default.notificationCenter.addObserver(self, selector: #selector(handleImmersionStateDidChangeNotification(_:)), name: NSNotification.Name.PhotoViewControllerImmersionDidChange, object: nil)
@@ -372,17 +451,61 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   }
 
   public func recalibrateImageViewFrame() -> Void {
-    if let image = imageView.image {
-      var aframe = AVMakeRect(aspectRatio: image.size, insideRect: view.bounds)
-      aframe.origin = .zero
-      imageView.frame = aframe
-      scrollView.setZoomScale(1, animated: false)
-      centerizeImageView()
+    switch resource.type {
+    case .image:
+      if let image = imageView.image {
+        recalibrateContentViewFrame(resourceSize: image.size)
+      }
+    case .livePhoto:
+      if #available(iOS 9.1, *) {
+        if let livePhoto = livePhotoView.livePhoto {
+          if recalibrateContentViewFrame(resourceSize: livePhoto.size) || recalibrateContentViewFrame(resourceSize: resource.contentSize) {
+            livePhotoView.frame = imageView.bounds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+              guard let strongself = self else { return }
+              strongself.createSnapshotOfResourceView()
+            }
+          }
+        }
+      }
+    default:
+      break
     }
   }
 
+  public func createSnapshotOfResourceView() -> Void {
+    guard imageView.image == nil else { return }
+    switch resource.type {
+    case .livePhoto:
+      if #available(iOS 9.1, *) {
+        let b = imageView.bounds
+        let image = drawImage(inSize: b.size) { _ in
+          livePhotoView.drawHierarchy(in: b, afterScreenUpdates: false)
+        }
+        if let image = image, image.size.isValid {
+          imageView.image = image
+        }
+      }
+    default:
+      break
+    }
+  }
+
+  @discardableResult
+  public func recalibrateContentViewFrame(resourceSize: CGSize) -> Bool {
+    guard resourceSize.isValid else {
+      return false
+    }
+    var aframe = AVMakeRect(aspectRatio: resourceSize, insideRect: view.bounds)
+    aframe.origin = .zero
+    imageView.frame = aframe
+    scrollView.setZoomScale(1, animated: false)
+    centerizeImageView()
+    return true
+  }
+
   override open func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
-    if keyPath == #keyPath(UIImageView.image) {
+    if observeImageSize(forKeyPath: keyPath) {
       recalibrateImageViewFrame()
     } else {
       super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
@@ -390,8 +513,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   }
 
   deinit {
-    navigationController?.interactivePopGestureRecognizer?.isEnabled = true
-    imageView.removeObserver(self, forKeyPath: #keyPath(UIImageView.image))
+    removeImageObserver()
     orientationObserver.map{ NotificationCenter.default.removeObserver($0) }
     PhotoViewManager.default.notificationCenter.removeObserver(self)
   }
