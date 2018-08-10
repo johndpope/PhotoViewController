@@ -46,10 +46,14 @@ class CustomPhotoPageController: UIViewController {
     pageControl.currentPageIndicatorTintColor = UIColor.darkGray
     pageControl.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     pageControl.translatesAutoresizingMaskIntoConstraints = false
-    pageControl.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -20).isActive = true
-    pageControl.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
-    pageControl.heightAnchor.constraint(equalToConstant: 20).isActive = true
-    pageControl.widthAnchor.constraint(equalToConstant: 300).isActive = true
+    if #available(iOS 9.0, *) {
+      pageControl.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -20).isActive = true
+      pageControl.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
+      pageControl.heightAnchor.constraint(equalToConstant: 20).isActive = true
+      pageControl.widthAnchor.constraint(equalToConstant: 300).isActive = true
+    } else {
+      // Fallback on earlier versions
+    }
   }
 
 }
