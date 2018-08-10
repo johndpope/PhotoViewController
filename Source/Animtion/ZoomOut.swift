@@ -152,33 +152,37 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
       }
     }
 
-    let completion: () -> Void = { [weak self] in
+    let completion: () -> Void = { [weak self, weak transitionContext, weak containerView] in
       defer {
         mockSourceImageView.removeFromSuperview()
         toSnapshotView.removeFromSuperview()
         fromSnapshotView.removeFromSuperview()
-        transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
         // for status bar
         PhotoViewManager.default.resetImmersingState()
+        if let strongContext = transitionContext {
+          strongContext.completeTransition(!strongContext.transitionWasCancelled)
+        }
       }
-      guard let self = self else { return }
-      if let interactiveController = self.interactiveController, interactiveController.observedInteractive {
-        interactiveController.removeObserver(self, forKeyPath: #keyPath(ZoomOutAnimatedInteractiveController.progress))
-        interactiveController.removeObserver(self, forKeyPath: #keyPath(ZoomOutAnimatedInteractiveController.transform))
+      guard let strongself = self else { return }
+      if let interactiveController = strongself.interactiveController, interactiveController.observedInteractive {
+        interactiveController.removeObserver(strongself, forKeyPath: #keyPath(ZoomOutAnimatedInteractiveController.progress))
+        interactiveController.removeObserver(strongself, forKeyPath: #keyPath(ZoomOutAnimatedInteractiveController.transform))
       }
-      self.animationDidFinish?(!transitionContext.transitionWasCancelled)
-      self.provider.currentImageViewHidden = false
-      if self.provider.modally && !transitionContext.transitionWasCancelled {
-        containerView.superview?.addSubview(toVC.view)
+      strongself.provider.currentImageViewHidden = false
+      guard let strongContext = transitionContext else { return }
+      strongself.animationDidFinish?(!strongContext.transitionWasCancelled)
+      if strongself.provider.modally && !strongContext.transitionWasCancelled {
+        containerView?.superview?.addSubview(toVC.view)
       }
     }
     imageViewTransformBlock = { [weak mockSourceImageView] in
       mockSourceImageView?.transform = $0
     }
     if let interactiveController = interactiveController {
-      interactiveController.continueAnimation = { [weak self] in
+      interactiveController.continueAnimation = { [weak self, weak transitionContext, weak interactiveController] in
         guard let strongself = self else { return }
-        if transitionContext.transitionWasCancelled {
+        guard let strongContext = transitionContext else { return }
+        if strongContext.transitionWasCancelled {
           switch strongself.option {
           case .fallback:
             break
@@ -191,7 +195,8 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
         } else {
           switch strongself.option {
           case let .fallback(springDampingRatio, initialSpringVelocity, options):
-            UIView.animate(withDuration: strongself.duration * Double(1 - interactiveController.progress), delay: 0, usingSpringWithDamping: springDampingRatio, initialSpringVelocity: initialSpringVelocity, options: [options, .beginFromCurrentState], animations: {
+            guard let strongInteractiveController = interactiveController else { return }
+            UIView.animate(withDuration: strongself.duration * Double(1 - strongInteractiveController.progress), delay: 0, usingSpringWithDamping: springDampingRatio, initialSpringVelocity: initialSpringVelocity, options: [options, .beginFromCurrentState], animations: {
               animtions(false)
             }, completion: nil)
           case .perferred:
@@ -207,16 +212,18 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
     }
     switch option {
     case let .fallback(springDampingRatio, initialSpringVelocity, options):
-      UIView.animate(withDuration: duration, delay: 0, usingSpringWithDamping: springDampingRatio, initialSpringVelocity: initialSpringVelocity, options: options, animations: {
-        animtions(transitionContext.isInteractive)
+      UIView.animate(withDuration: duration, delay: 0, usingSpringWithDamping: springDampingRatio, initialSpringVelocity: initialSpringVelocity, options: options, animations: { [weak transitionContext] in
+        guard let strongContext = transitionContext else { return }
+        animtions(strongContext.isInteractive)
       }) { (finish) in
         completion()
       }
     case .perferred(let block):
       if #available(iOS 10.0, *) {
         animator = block(duration)
-        animator?.addAnimations {
-          animtions(transitionContext.isInteractive)
+        animator?.addAnimations {  [weak transitionContext] in
+          guard let strongContext = transitionContext else { return }
+          animtions(strongContext.isInteractive)
         }
         animator?.addCompletion { (postion) in
           completion()
@@ -244,12 +251,6 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
     } else if keyPath == #keyPath(ZoomOutAnimatedInteractiveController.transform){
       if let change = change, let trans = change[NSKeyValueChangeKey.newKey] as? CGAffineTransform {
         imageViewTransformBlock?(trans)
-      }
-      switch option {
-      case .perferred:
-        break
-      default:
-        break
       }
     } else {
       super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
