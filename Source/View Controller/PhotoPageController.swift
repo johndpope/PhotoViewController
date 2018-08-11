@@ -8,6 +8,12 @@
 
 import UIKit
 
+@inlinable
+func debuglog(_ items: Any...) -> Void {
+  #if DEBUG
+  print(items)
+  #endif
+}
 
 open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPageViewControllerDelegate, UIPageViewControllerDataSource, ImageZoomProvider {
 
@@ -81,7 +87,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
 
   override open func viewDidLoad() {
     super.viewDidLoad()
-    PhotoViewManager.default.resetImmersingState()
+    PhotoViewManager.default.reloadImmersingState(true)
     changePhotoPageBackgroundColor()
     addPhotoObservers()
     addPage()
@@ -214,18 +220,14 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   public func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
     guard let index = indexOf(viewController: viewController) else { return nil }
     guard let previousIndex = resources.nextIndexPath(of: index, forward: false, loop: loop) else { return nil }
-    #if DEBUG
-    print("moving to page \(previousIndex)")
-    #endif
+    debuglog("moving to page \(previousIndex)")
     return photoShow(modally: modally, resource: resources[resource: previousIndex])
   }
 
   public func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
     guard let index = indexOf(viewController: viewController) else { return nil }
     guard let nextIndex = resources.nextIndexPath(of: index, forward: true, loop: loop) else { return nil }
-    #if DEBUG
-    print("moving to page \(nextIndex)")
-    #endif
+    debuglog("moving to page \(nextIndex)")
     return photoShow(modally: modally, resource: resources[resource: nextIndex])
   }
 

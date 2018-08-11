@@ -18,8 +18,11 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
   let animationWillBegin: (() -> Void)?
   let animationDidFinish: ((Bool) -> Void)?
   var imageViewTransformBlock: ((CGAffineTransform) -> Void)?
+
+  /// only valid when option is ImageZoomAnimationOption.fallback
+  var deferredCompletion: Bool = false
   public var prepareAnimation: ((_ imageView: UIImageView) -> Void)?
-  public var userAnimation: ((_ isInteractive: Bool, _ imageView: UIImageView) -> Void)?
+  public var userAnimation: ((_ isInteractive: Bool, _ isCancelled: Bool, _ imageView: UIImageView) -> Void)?
 
   @available(iOS 10.0, *)
   var animator: UIViewPropertyAnimator? {
@@ -141,35 +144,38 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
       interactiveController.observedInteractive = true
     }
 
-    let animtions: (_ interactive: Bool) -> Void = { [weak self] interactive in
-      fromSnapshotView.alpha = 0
-      self?.userAnimation?(interactive, mockSourceImageView)
+    let animtions: (_ interactive: Bool, _ isCancelled: Bool) -> Void = { [weak self] interactive, isCancelled in
+      fromSnapshotView.alpha = isCancelled ? 1 : 0
+      self?.userAnimation?(interactive, isCancelled, mockSourceImageView)
       if !interactive {
         mockSourceImageView.transform = .identity
-        mockSourceImageView.frame = toImageViewFrame
+        mockSourceImageView.frame = isCancelled ? fromImageViewFrame : toImageViewFrame
         guard let strongself = self else { return }
-        mockSourceImageView.contentMode = strongself.toImageViewContentMode
+        mockSourceImageView.contentMode = isCancelled ? .scaleAspectFit : strongself.toImageViewContentMode
       }
     }
 
     let completion: () -> Void = { [weak self, weak transitionContext, weak containerView] in
+      guard let strongself = self else { return }
+      guard let strongContext = transitionContext else { return }
+      if strongContext.transitionWasCancelled && strongself.deferredCompletion {
+        return
+      }
       defer {
         mockSourceImageView.removeFromSuperview()
         toSnapshotView.removeFromSuperview()
         fromSnapshotView.removeFromSuperview()
         // for status bar
-        PhotoViewManager.default.resetImmersingState()
         if let strongContext = transitionContext {
           strongContext.completeTransition(!strongContext.transitionWasCancelled)
+          PhotoViewManager.default.reloadImmersingState(!strongContext.transitionWasCancelled)
         }
       }
-      guard let strongself = self else { return }
       if let interactiveController = strongself.interactiveController, interactiveController.observedInteractive {
         interactiveController.removeObserver(strongself, forKeyPath: #keyPath(ZoomOutAnimatedInteractiveController.progress))
         interactiveController.removeObserver(strongself, forKeyPath: #keyPath(ZoomOutAnimatedInteractiveController.transform))
       }
       strongself.provider.currentImageViewHidden = false
-      guard let strongContext = transitionContext else { return }
       strongself.animationDidFinish?(!strongContext.transitionWasCancelled)
       if strongself.provider.modally && !strongContext.transitionWasCancelled {
         containerView?.superview?.addSubview(toVC.view)
@@ -182,30 +188,23 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
       interactiveController.continueAnimation = { [weak self, weak transitionContext, weak interactiveController] in
         guard let strongself = self else { return }
         guard let strongContext = transitionContext else { return }
-        if strongContext.transitionWasCancelled {
-          switch strongself.option {
-          case .fallback:
-            break
-          case .perferred:
-            if #available(iOS 10.0, *) {
-              strongself.animator?.stopAnimation(false)
-              strongself.animator?.finishAnimation(at: .start)
+        let isCancelled = strongContext.transitionWasCancelled
+        switch strongself.option {
+        case let .fallback(springDampingRatio, initialSpringVelocity, options):
+          strongself.deferredCompletion = true
+          guard let strongInteractiveController = interactiveController else { return }
+          UIView.animate(withDuration: strongself.duration * Double(1 - strongInteractiveController.progress), delay: 0, usingSpringWithDamping: springDampingRatio, initialSpringVelocity: initialSpringVelocity, options: [options, .beginFromCurrentState], animations: {
+            animtions(false, isCancelled)
+          }, completion: { [weak strongself] (finish) in
+            strongself?.deferredCompletion = false
+            completion()
+          })
+        case .perferred:
+          if #available(iOS 10.0, *) {
+            strongself.animator?.addAnimations {
+              animtions(false, isCancelled)
             }
-          }
-        } else {
-          switch strongself.option {
-          case let .fallback(springDampingRatio, initialSpringVelocity, options):
-            guard let strongInteractiveController = interactiveController else { return }
-            UIView.animate(withDuration: strongself.duration * Double(1 - strongInteractiveController.progress), delay: 0, usingSpringWithDamping: springDampingRatio, initialSpringVelocity: initialSpringVelocity, options: [options, .beginFromCurrentState], animations: {
-              animtions(false)
-            }, completion: nil)
-          case .perferred:
-            if #available(iOS 10.0, *) {
-              strongself.animator?.addAnimations {
-                animtions(false)
-              }
-              strongself.animator?.startAnimation()
-            }
+            strongself.animator?.startAnimation()
           }
         }
       }
@@ -214,7 +213,7 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
     case let .fallback(springDampingRatio, initialSpringVelocity, options):
       UIView.animate(withDuration: duration, delay: 0, usingSpringWithDamping: springDampingRatio, initialSpringVelocity: initialSpringVelocity, options: options, animations: { [weak transitionContext] in
         guard let strongContext = transitionContext else { return }
-        animtions(strongContext.isInteractive)
+        animtions(strongContext.isInteractive, strongContext.transitionWasCancelled)
       }) { (finish) in
         completion()
       }
@@ -223,7 +222,7 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
         animator = block(duration)
         animator?.addAnimations {  [weak transitionContext] in
           guard let strongContext = transitionContext else { return }
-          animtions(strongContext.isInteractive)
+          animtions(strongContext.isInteractive, strongContext.transitionWasCancelled)
         }
         animator?.addCompletion { (postion) in
           completion()

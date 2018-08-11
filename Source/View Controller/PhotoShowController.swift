@@ -10,6 +10,26 @@ import Foundation
 import PhotosUI
 import AVFoundation
 
+// somehow I cannot log state directly
+extension UIGestureRecognizer.State {
+  var name: String {
+    switch self {
+    case .began:
+      return "began"
+    case .possible:
+      return "possible"
+    case .changed:
+      return "changed"
+    case .ended:
+      return "ended"
+    case .cancelled:
+      return "cancelled"
+    case .failed:
+      return "failed"
+    }
+  }
+}
+
 func upsearch<T, U>(from starter: T, maximumSearch: Int, type: U.Type, father: (T?) -> T?) -> U? {
   var number = 0
   var _nextFinder: T? = starter
@@ -55,14 +75,84 @@ extension Comparable {
 
 open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestureRecognizerDelegate {
 
-  let modally: Bool
-  let contentView: UIView
+  public let modally: Bool
+  public let contentView: UIView
+  public private(set) var isStatusBarHidden: Bool = false
+
   public let resource: MediaResource
   public let scrollView: UIScrollView
   public let imageView: UIImageView
   @available(iOS 9.1, *)
   public lazy var livePhotoView: PHLivePhotoView = PHLivePhotoView(frame: .zero)
-  var isStatusBarHidden: Bool = false
+
+  public var dismissalInteractiveController: ZoomOutAnimatedInteractiveController?
+
+  public var dragingDismissalPercentRequired: CGFloat = 0.05
+  public var zoomingDismissalPercentRequired: CGFloat = 0.1
+
+  public private(set) var isZoomingAndRotating: Bool = false
+
+  public var embededScrollView: UIScrollView? {
+    return upsearch(from: view, maximumSearch: 5, type: UIScrollView.self, father: {
+      $0?.superview
+    })
+  }
+
+  open var resourceContentSize: CGSize? {
+    switch resource.type {
+    case .image:
+      if let image = imageView.image {
+        return image.size
+      }
+    case .livePhoto:
+      if #available(iOS 9.1, *) {
+        if let livePhoto = livePhotoView.livePhoto {
+          if livePhoto.size.isValid {
+            return livePhoto.size
+          }
+          if resource.contentSize.isValid {
+            return resource.contentSize
+          }
+        }
+      }
+    case .gif:
+      return gifResourceContentSize
+    case .unspecified:
+      return otherResourceContentSize
+    }
+    return nil
+  }
+
+  open var scalingFator: CGFloat {
+    return PhotoViewManager.default.interactiveDismissScaleFactor
+  }
+
+  open var orientationObserver: NSObjectProtocol?
+
+  open var imageViewFrame: CGRect {
+    if imageView.image != nil {
+      if #available(iOS 11.0, *) {
+        return imageView.frame.offsetBy(dx: scrollView.adjustedContentInset.left, dy: scrollView.adjustedContentInset.top)
+      } else {
+        return imageView.frame.offsetBy(dx: scrollView.contentInset.left, dy: scrollView.contentInset.top)
+      }
+    } else if let image = PhotoViewManager.default.hintImage {
+      if let contentMode = PhotoViewManager.default.contenMode(for: image.size) {
+        return destinationResourceContentFrame(contentMode: contentMode, size: image.size).framOnWindow
+      }
+    }
+    return view.bounds
+  }
+
+  // MARK: - gesture recognizers
+
+  public lazy var singleTapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleSingleTap(_:)))
+  public lazy var doubleTapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
+  public lazy var dismissalGestureRecognizer = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
+  public lazy var pinchGestureRecognizer = UIPinchGestureRecognizer(target: self, action: #selector(handleZoomAndRotate))
+  public lazy var rotationGestureRecognizer = UIRotationGestureRecognizer(target: self, action: #selector(handleZoomAndRotate))
+
+  // MARK: - init method
 
   public init(modally: Bool, resource: MediaResource) {
     self.modally = modally
@@ -89,74 +179,200 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     updateImmersingUI()
   }
 
-  open override func viewDidAppear(_ animated: Bool) {
-    super.viewDidAppear(animated)
+  // MARK: - initial setup
+
+  open func configScrollView() -> Void {
+    view.addSubview(contentView)
+    contentView.frame = view.bounds
+    contentView.addSubview(scrollView)
+    scrollView.frame = contentView.bounds
+    if #available(iOS 11.0, *) {
+      scrollView.contentInsetAdjustmentBehavior = .never
+    } else {
+      // Fallback on earlier versions
+    }
+    scrollView.backgroundColor = UIColor.clear
+    scrollView.delegate = self
+    scrollView.maximumZoomScale = 4
+    scrollView.minimumZoomScale = 1
   }
 
-  open override func viewWillDisappear(_ animated: Bool) {
-    super.viewWillDisappear(animated)
-  }
 
-  public lazy var singleTapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleSingleTap(_:)))
-  public lazy var doubleTapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
-  public lazy var dismissalGestureRecognizer = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
-  public lazy var pinchGestureRecognizer = UIPinchGestureRecognizer(target: self, action: #selector(handleZoomAndRotate))
-  public lazy var rotationGestureRecognizer = UIRotationGestureRecognizer(target: self, action: #selector(handleZoomAndRotate))
 
-  public var dismissalInteractiveController: ZoomOutAnimatedInteractiveController?
 
-  private var embededScrollView: UIScrollView? {
-    return upsearch(from: view, maximumSearch: 5, type: UIScrollView.self, father: {
-      $0?.superview
-    })
-  }
 
-  public var dragingDismissalPercentRequired: CGFloat = 0.05
-  public var zoomingDismissalPercentRequired: CGFloat = 0.1
 
-  public private(set) var isZoomingAndRotating: Bool = false
+  open func configGestureRecognizer() -> Void {
+    doubleTapGestureRecognizer.delegate = self
+    singleTapGestureRecognizer.delegate = self
+    dismissalGestureRecognizer.delegate = self
+    pinchGestureRecognizer.delegate = self
+    rotationGestureRecognizer.delegate = self
 
-  @objc open func handleZoomAndRotate() -> Void {
-    guard scrollView.reachMinZoomScale || isZoomingAndRotating else { return }
-    let percentComplete: CGFloat = (1 - pinchGestureRecognizer.scale).clamp(0, 1)
-    switch (rotationGestureRecognizer.state, pinchGestureRecognizer.state) {
-    case (.began, _):
-      fallthrough
-    case (_, .began):
-      isZoomingAndRotating = true
-      beginInteractiveDismissalTransition()
-    case (.changed, _):
-      fallthrough
-    case (_, .changed):
-      var translation = pinchGestureRecognizer.location(in: pinchGestureRecognizer.view)
-      let center = view.center
-      translation.x -= center.x
-      translation.y -= center.y
-      dismissalInteractiveController?.transform = transform(forTranslation: translation)
-      changeInteractionProgress(percentComplete)
-    case (.ended, _):
-      fallthrough
-    case (_, .ended):
-      finishZoomingAndRotating()
-      finishInteractiveTransition(percentComplete > zoomingDismissalPercentRequired)
-    case (.cancelled, _):
-      fallthrough
-    case (_, .cancelled):
-      finishZoomingAndRotating()
-      finishInteractiveTransition(false)
-    default:
+    doubleTapGestureRecognizer.numberOfTapsRequired = 2
+    singleTapGestureRecognizer.require(toFail: doubleTapGestureRecognizer)
+    singleTapGestureRecognizer.require(toFail: dismissalGestureRecognizer)
+    switch resource.type {
+    case .image:
       break
+    case .livePhoto:
+      if #available(iOS 9.1, *) {
+        singleTapGestureRecognizer.require(toFail: livePhotoView.playbackGestureRecognizer)
+      }
+    case .gif:
+      configGIFGestureRecognizer()
+    case .unspecified:
+      configOtherGestureRecognizer()
+    }
+
+    view.addGestureRecognizer(doubleTapGestureRecognizer)
+    view.addGestureRecognizer(dismissalGestureRecognizer)
+    view.addGestureRecognizer(singleTapGestureRecognizer)
+    view.addGestureRecognizer(pinchGestureRecognizer)
+    view.addGestureRecognizer(rotationGestureRecognizer)
+
+  }
+
+  open func configImageView() -> Void {
+    imageView.backgroundColor = UIColor.clear
+    imageView.contentMode = .scaleAspectFit
+    scrollView.addSubview(imageView)
+    imageView.frame = scrollView.bounds
+
+    switch resource.type {
+    case .image:
+      break
+    case .livePhoto:
+      if #available(iOS 9.1, *) {
+        livePhotoView.contentMode = .scaleAspectFit
+        imageView.addSubview(livePhotoView)
+        imageView.isUserInteractionEnabled = true
+        let livePhotoBadge = UIImageView(image: PHLivePhotoView.livePhotoBadgeImage(options: [.overContent]))
+        imageView.addSubview(livePhotoBadge)
+      }
+    case .gif:
+      configGIFImageView()
+    case .unspecified:
+      configGIFImageView()
     }
 
   }
 
-  open func finishZoomingAndRotating() -> Void {
+  open func loadResource() -> Void {
+    switch resource.type {
+    case .image:
+      resource.display(inImageView: imageView)
+    case .livePhoto:
+      if #available(iOS 9.1, *) {
+        resource.displayLivePhoto(inLivePhotView: livePhotoView, inImageView: imageView)
+      }
+    case .gif:
+      loadGIFResource()
+    case .unspecified:
+      loadOtherResource()
+    }
+  }
+
+  // MARK: - zooming dismissal method
+
+  open func finishZoomingAndRotating(_ completed: Bool) -> Void {
+    guard isZoomingAndRotating else { return }
+    debuglog(#function)
     isZoomingAndRotating = false
     pinchGestureRecognizer.scale = 1
     rotationGestureRecognizer.rotation = 0
   }
 
+  // MARK: - dismissal transform
+
+
+  open func transform(forTranslation translation: CGPoint) -> CGAffineTransform {
+    if isZoomingAndRotating {
+      let scale = pinchGestureRecognizer.scale.clamp(0, CGFloat.greatestFiniteMagnitude)
+      let angle = rotationGestureRecognizer.rotation
+      let scaleTransform = CGAffineTransform.identity.makeScale(to: scale, ratate: angle)
+      let moveTransform = scaleTransform.concatenating(CGAffineTransform(translationX: translation.x, y: translation.y))
+      return moveTransform
+    } else {
+      let scale = (1 - translation.y / UIScreen.main.bounds.height * scalingFator).clamp(0, 1)
+      let scaleTransform = CGAffineTransform.identity.makeScale(to: scale)
+      let moveDownTransform = scaleTransform.concatenating(CGAffineTransform(translationX: translation.x, y: translation.y))
+      return moveDownTransform
+    }
+  }
+
+  // MARK: - dismissal
+
+  open func uniformDismiss() -> Void {
+    if modally {
+      dismiss(animated: true, completion: nil)
+    } else {
+      updateImmersingUI(.normal)
+      navigationController?.popViewController(animated: true)
+    }
+  }
+
+  // MARK: - interactive dismissal
+
+  open func beginInteractiveDismissalTransition() -> Void {
+    guard dismissalInteractiveController == nil else { return }
+    debuglog(#function)
+    scrollView.isUserInteractionEnabled = false
+    scrollView.pinchGestureRecognizer?.isEnabled = false
+    embededScrollView?.isScrollEnabled = false
+    dismissalInteractiveController = ZoomOutAnimatedInteractiveController()
+    uniformDismiss()
+  }
+
+  open func changeInteractionProgress(_ percentComplete: CGFloat) -> Void {
+    debuglog(#function)
+    dismissalInteractiveController?.update(percentComplete)
+    dismissalInteractiveController?.progress = percentComplete
+  }
+
+  open func finishInteractiveTransition(_ complete: Bool) -> Void {
+    guard dismissalInteractiveController != nil else { return }
+    debuglog(#function)
+    if complete {
+      dismissalInteractiveController?.finish()
+    } else {
+      dismissalInteractiveController?.cancel()
+    }
+    dismissalInteractiveController?.continueAnimation?()
+    dismissalInteractiveController = nil
+    embededScrollView?.isScrollEnabled = true
+    scrollView.pinchGestureRecognizer?.isEnabled = true
+    scrollView.isUserInteractionEnabled = true
+  }
+
+  // MARK: - gesture handler
+
+
+  @objc open func handleSingleTap(_ tap: UITapGestureRecognizer) -> Void {
+    debuglog("Tap(single) state: \(tap.state.name)")
+    switch PhotoViewManager.default.viewTapAction {
+    case .toggleImmersingState:
+      PhotoViewManager.default.nextImmersingState()
+    case .dismiss:
+      scrollView.zoomToMin(at: .zero)
+      uniformDismiss()
+    }
+  }
+
+  @objc open func handleDoubleTap(_ tap: UITapGestureRecognizer) -> Void {
+    debuglog("Tap(double) state: \(tap.state.name)")
+    let location = tap.location(in: tap.view)
+    let insets = scrollView.contentInset
+    let offsetLocation = CGRect(origin: location, size: .zero).offsetBy(dx: -insets.left, dy: -insets.top).origin
+    toggleZoomLevel(at: offsetLocation)
+  }
+
   @objc open func handlePan(_ pan: UIPanGestureRecognizer) -> Void {
+    if isZoomingAndRotating {
+      debuglog("is zooming")
+      return
+    }
+    debuglog("Pan state: \(pan.state.name)")
     guard scrollView.reachMinZoomScale else { return }
     let translation = pan.translation(in: pan.view)
     if translation.y <= 0 && dismissalInteractiveController == nil {
@@ -181,78 +397,50 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     }
   }
 
-  public var scalingFator: CGFloat {
-    return PhotoViewManager.default.interactiveDismissScaleFactor
-  }
-
-  open func transform(forTranslation translation: CGPoint) -> CGAffineTransform {
-    if isZoomingAndRotating {
-      let scale = pinchGestureRecognizer.scale.clamp(0, 1)
-      let angle = rotationGestureRecognizer.rotation
-      let scaleTransform = CGAffineTransform.identity.makeScale(to: scale, ratate: angle)
-      let moveTransform = scaleTransform.concatenating(CGAffineTransform(translationX: translation.x, y: translation.y))
-      return moveTransform
-    } else {
-      let scale = (1 - translation.y / UIScreen.main.bounds.height * scalingFator).clamp(0, 1)
-      let scaleTransform = CGAffineTransform.identity.makeScale(to: scale)
-      let moveDownTransform = scaleTransform.concatenating(CGAffineTransform(translationX: translation.x, y: translation.y))
-      return moveDownTransform
+  @objc open func handleZoomAndRotate() -> Void {
+    guard scrollView.reachMinZoomScale || isZoomingAndRotating else { return }
+    if !isZoomingAndRotating && dismissalInteractiveController != nil {
+      debuglog("is draging")
+      return
+    }
+    debuglog("Pinch state: \(pinchGestureRecognizer.state.name), Rotation state: \(rotationGestureRecognizer.state.name)")
+    let percentComplete: CGFloat = (1 - pinchGestureRecognizer.scale).clamp(0, 1)
+    switch (rotationGestureRecognizer.state, pinchGestureRecognizer.state) {
+    case (.began, _):
+      fallthrough
+    case (_, .began):
+      if isZoomingAndRotating {
+        scrollView.zoomToMin(at: .zero, false)
+      }
+      isZoomingAndRotating = true
+      beginInteractiveDismissalTransition()
+    case (.changed, _):
+      fallthrough
+    case (_, .changed):
+      var translation = pinchGestureRecognizer.location(in: pinchGestureRecognizer.view)
+      let center = view.center
+      translation.x -= center.x
+      translation.y -= center.y
+      dismissalInteractiveController?.transform = transform(forTranslation: translation)
+      changeInteractionProgress(percentComplete)
+    case (.ended, _):
+      fallthrough
+    case (_, .ended):
+      let completed = percentComplete > zoomingDismissalPercentRequired
+      finishInteractiveTransition(completed)
+      finishZoomingAndRotating(completed)
+    case (.cancelled, _):
+      fallthrough
+    case (_, .cancelled):
+      finishInteractiveTransition(false)
+      finishZoomingAndRotating(false)
+    default:
+      break
     }
 
   }
 
-  open func beginInteractiveDismissalTransition() -> Void {
-    guard dismissalInteractiveController == nil else { return }
-    scrollView.isUserInteractionEnabled = false
-    embededScrollView?.isScrollEnabled = false
-    dismissalInteractiveController = ZoomOutAnimatedInteractiveController()
-    uniformDismiss()
-  }
-
-  open func changeInteractionProgress(_ percentComplete: CGFloat) -> Void {
-    dismissalInteractiveController?.update(percentComplete)
-    dismissalInteractiveController?.progress = percentComplete
-  }
-
-  open func finishInteractiveTransition(_ complete: Bool) -> Void {
-    guard dismissalInteractiveController != nil else { return }
-    if complete {
-      dismissalInteractiveController?.finish()
-    } else {
-      dismissalInteractiveController?.cancel()
-    }
-    dismissalInteractiveController?.continueAnimation?()
-    dismissalInteractiveController = nil
-    embededScrollView?.isScrollEnabled = true
-    scrollView.isUserInteractionEnabled = true
-  }
-
-  @objc open func handleSingleTap(_ tap: UITapGestureRecognizer) -> Void {
-    switch PhotoViewManager.default.viewTapAction {
-    case .toggleImmersingState:
-      PhotoViewManager.default.nextImmersingState()
-    case .dismiss:
-      scrollView.zoomToMin(at: .zero)
-      uniformDismiss()
-    }
-  }
-
-  open func uniformDismiss() -> Void {
-    navigationController?.setNavigationBarHidden(false, animated: true)
-    if modally {
-      dismiss(animated: true, completion: nil)
-    } else {
-      navigationController?.popViewController(animated: true)
-    }
-  }
-
-
-  @objc open func handleDoubleTap(_ tap: UITapGestureRecognizer) -> Void {
-    let location = tap.location(in: tap.view)
-    let insets = scrollView.contentInset
-    let offsetLocation = CGRect(origin: location, size: .zero).offsetBy(dx: -insets.left, dy: -insets.top).origin
-    toggleZoomLevel(at: offsetLocation)
-  }
+  // MARK: - zooming
 
   open func toggleZoomLevel(at point: CGPoint) -> Void {
     if !scrollView.reachMaxZoomScale {
@@ -262,7 +450,10 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     }
   }
 
+  // MARK: - ImmersingUI
+
   open func updateImmersingUI(_ state: PhotoImmersingState? = nil) -> Void {
+    debuglog(#function)
     let isNavigationBarHidden: Bool
     switch state ?? PhotoViewManager.default.immersingState {
     case .normal:
@@ -276,41 +467,17 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     setNeedsStatusBarAppearanceUpdate()
   }
 
-  override open var prefersStatusBarHidden: Bool {
-    return isStatusBarHidden
-  }
-
-  open func configGestureRecognizer() -> Void {
-    doubleTapGestureRecognizer.delegate = self
-    singleTapGestureRecognizer.delegate = self
-    dismissalGestureRecognizer.delegate = self
-    pinchGestureRecognizer.delegate = self
-    rotationGestureRecognizer.delegate = self
-
-    doubleTapGestureRecognizer.numberOfTapsRequired = 2
-    singleTapGestureRecognizer.require(toFail: doubleTapGestureRecognizer)
-    singleTapGestureRecognizer.require(toFail: dismissalGestureRecognizer)
-
-    if #available(iOS 9.1, *) {
-      if resource.type ~= .livePhoto {
-        singleTapGestureRecognizer.require(toFail: livePhotoView.playbackGestureRecognizer)
-      }
-    }
-
-    view.addGestureRecognizer(doubleTapGestureRecognizer)
-    view.addGestureRecognizer(dismissalGestureRecognizer)
-    view.addGestureRecognizer(singleTapGestureRecognizer)
-    view.addGestureRecognizer(pinchGestureRecognizer)
-    view.addGestureRecognizer(rotationGestureRecognizer)
-
-  }
+  // MARK: - UIGestureRecognizerDelegate
 
   public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
     if gestureRecognizer == dismissalGestureRecognizer {
       let translation =  dismissalGestureRecognizer.translation(in: dismissalGestureRecognizer.view)
-      return translation.y > 0
+      return translation.y > 0 && !isZoomingAndRotating
     }
     if gestureRecognizer == rotationGestureRecognizer || gestureRecognizer == pinchGestureRecognizer {
+      if !isZoomingAndRotating && dismissalInteractiveController != nil {
+        return false
+      }
       return scrollView.reachMinZoomScale && pinchGestureRecognizer.scale < 1
     }
     return true
@@ -321,6 +488,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
       return scrollView.reachMinZoomScale
     }
     if gestureRecognizer == dismissalGestureRecognizer, otherGestureRecognizer.view is UIScrollView {
+      // for contentMode = .fitWidth
       if scrollView.contentOffset.y <= 0 {
         return true
       }
@@ -331,38 +499,8 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     return true
   }
 
-  open var imageViewFrame: CGRect {
-    if imageView.image != nil {
-      if #available(iOS 11.0, *) {
-        return imageView.frame.offsetBy(dx: scrollView.adjustedContentInset.left, dy: scrollView.adjustedContentInset.top)
-      } else {
-        return imageView.frame.offsetBy(dx: scrollView.contentInset.left, dy: scrollView.contentInset.top)
-      }
-    } else if let image = PhotoViewManager.default.hintImage {
-      if let contentMode = PhotoViewManager.default.contenMode(for: image.size) {
-        return destinationResourceContentFrame(contentMode: contentMode, size: image.size).framOnWindow
-      }
-    }
-    return view.bounds
-  }
 
-  open func configScrollView() -> Void {
-    view.addSubview(contentView)
-    contentView.frame = view.bounds
-    contentView.addSubview(scrollView)
-    scrollView.frame = contentView.bounds
-    if #available(iOS 11.0, *) {
-      scrollView.contentInsetAdjustmentBehavior = .never
-    } else {
-      // Fallback on earlier versions
-    }
-    scrollView.backgroundColor = UIColor.clear
-    scrollView.delegate = self
-    scrollView.maximumZoomScale = 4
-    scrollView.minimumZoomScale = 1
-  }
-
-  open var orientationObserver: NSObjectProtocol?
+  // MARK: - Orientation
 
   open func addOrientationObserver() -> Void {
     orientationObserver = NotificationCenter.default.addObserver(forName: UIApplication.didChangeStatusBarOrientationNotification, object: nil, queue: nil, using: { [weak self] _ in
@@ -380,37 +518,8 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     scrollView.setZoomScale(scale, animated: false)
   }
 
+  // MARK: - resource content size observer
 
-  open func configImageView() -> Void {
-    imageView.backgroundColor = UIColor.clear
-    imageView.contentMode = .scaleAspectFit
-    scrollView.addSubview(imageView)
-    imageView.frame = scrollView.bounds
-
-    if #available(iOS 9.1, *) {
-      if resource.type ~= .livePhoto {
-        livePhotoView.contentMode = .scaleAspectFit
-        imageView.addSubview(livePhotoView)
-        imageView.isUserInteractionEnabled = true
-
-        let livePhotoBadge = UIImageView(image: PHLivePhotoView.livePhotoBadgeImage(options: [.overContent]))
-        imageView.addSubview(livePhotoBadge)
-      }
-    }
-  }
-
-  open func loadResource() -> Void {
-    switch resource.type {
-    case .image:
-      resource.display(inImageView: imageView)
-    case .livePhoto:
-      if #available(iOS 9.1, *) {
-        resource.displayLivePhoto(inLivePhotView: livePhotoView, inImageView: imageView)
-      }
-    default:
-      break
-    }
-  }
 
   open func addImageObserver() -> Void {
     switch resource.type {
@@ -420,8 +529,10 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
       if #available(iOS 9.1, *) {
         livePhotoView.addObserver(self, forKeyPath: #keyPath(PHLivePhotoView.livePhoto), options: [.new], context: nil)
       }
-    default:
-      break
+    case .gif:
+      addGIFImageObserver()
+    case .unspecified:
+      addOtherImageObserver()
     }
   }
 
@@ -434,8 +545,10 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
       if #available(iOS 9.1, *) {
         livePhotoView.removeObserver(self, forKeyPath: #keyPath(PHLivePhotoView.livePhoto))
       }
-    default:
-      break
+    case .gif:
+      removeGIFImageObserver()
+    case .unspecified:
+      removeOtherImageObserver()
     }
   }
 
@@ -449,12 +562,15 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
       if keyPath == #keyPath(PHLivePhotoView.livePhoto) {
         return true
       }
-    default:
-      break
+    case .gif:
+      return observeGIFImageSize(forKeyPath: keyPath)
+    case .unspecified:
+      return observeOtherImageSize(forKeyPath: keyPath)
     }
     return false
   }
 
+  // MARK: - immersion observer
 
   open func addImmersionObserver() {
     PhotoViewManager.default.notificationCenter.addObserver(self, selector: #selector(handleImmersionStateDidChangeNotification(_:)), name: NSNotification.Name.PhotoViewControllerImmersionDidChange, object: nil)
@@ -464,28 +580,31 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     updateImmersingUI()
   }
 
-  open var resourceContentSize: CGSize? {
+  // MARK: - snapshot view
+
+  open func createSnapshotOfResourceView() -> Void {
+    guard imageView.image == nil else { return }
     switch resource.type {
     case .image:
-      if let image = imageView.image {
-        return image.size
-      }
+      break
     case .livePhoto:
       if #available(iOS 9.1, *) {
-        if let livePhoto = livePhotoView.livePhoto {
-          if livePhoto.size.isValid {
-            return livePhoto.size
-          }
-          if resource.contentSize.isValid {
-            return resource.contentSize
-          }
+        let b = imageView.bounds
+        let image = drawImage(inSize: b.size) { _ in
+          livePhotoView.drawHierarchy(in: b, afterScreenUpdates: false)
+        }
+        if let image = image, image.size.isValid {
+          imageView.image = image
         }
       }
-    default:
-      break
+    case .gif:
+      createGIFSnapshotOfResourceView()
+    case .unspecified:
+      createOtherSnapshotOfResourceView()
     }
-    return nil
   }
+
+  // MARK: - resource content frame
 
   open func recalibrateImageViewFrame() -> Void {
     guard let resourceContentSize = resourceContentSize else { return }
@@ -502,28 +621,14 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
           }
         }
       }
-    default:
-      break
+    case .gif:
+      recalibrateGIFImageViewFrame()
+    case .unspecified:
+      recalibrateOtherImageViewFrame()
     }
   }
 
-  open func createSnapshotOfResourceView() -> Void {
-    guard imageView.image == nil else { return }
-    switch resource.type {
-    case .livePhoto:
-      if #available(iOS 9.1, *) {
-        let b = imageView.bounds
-        let image = drawImage(inSize: b.size) { _ in
-          livePhotoView.drawHierarchy(in: b, afterScreenUpdates: false)
-        }
-        if let image = image, image.size.isValid {
-          imageView.image = image
-        }
-      }
-    default:
-      break
-    }
-  }
+
 
   @discardableResult
   open func recalibrateContentViewFrame(resourceSize: CGSize) -> Bool {
@@ -573,27 +678,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     return (__frame, ___frame)
   }
 
-  override open func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
-    if observeImageSize(forKeyPath: keyPath) {
-      recalibrateImageViewFrame()
-    } else {
-      super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
-    }
-  }
-
-  deinit {
-    removeImageObserver()
-    orientationObserver.map{ NotificationCenter.default.removeObserver($0) }
-    PhotoViewManager.default.notificationCenter.removeObserver(self)
-  }
-
-  public func viewForZooming(in scrollView: UIScrollView) -> UIView? {
-    return imageView
-  }
-
-  public func scrollViewDidZoom(_ scrollView: UIScrollView) {
-    updateScrollViewInsets(true)
-  }
+  // MARK: - centerize content if needed
 
   open func updateScrollViewInsets(_ zooming: Bool) -> Void {
     guard let resourceContentSize = resourceContentSize else { return }
@@ -612,5 +697,87 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
       }
     }
   }
+
+
+  // MARK: - subclass method
+
+  open var gifResourceContentSize: CGSize? { subclassMustImplement(); return nil }
+
+  open var otherResourceContentSize: CGSize? { subclassMustImplement(); return nil }
+
+  open func loadGIFResource() -> Void { subclassMustImplement() }
+
+  open func loadOtherResource() -> Void { subclassMustImplement() }
+
+  open func addGIFImageObserver() -> Void { subclassMustImplement() }
+
+  open func addOtherImageObserver() -> Void { subclassMustImplement() }
+
+  open func removeGIFImageObserver() -> Void { subclassMustImplement() }
+
+  open func removeOtherImageObserver() -> Void { subclassMustImplement() }
+
+  open func observeGIFImageSize(forKeyPath keyPath: String?) -> Bool { subclassMustImplement(); return false }
+
+  open func observeOtherImageSize(forKeyPath keyPath: String?) -> Bool { subclassMustImplement(); return false }
+
+  open func configGIFGestureRecognizer() -> Void {}
+
+  open func configOtherGestureRecognizer() -> Void {}
+
+  open func createGIFSnapshotOfResourceView() -> Void {}
+
+  open func createOtherSnapshotOfResourceView() -> Void {}
+
+  open func configGIFImageView() -> Void { subclassMustImplement() }
+
+  open func configOtherImageView() -> Void { subclassMustImplement() }
+
+  open func recalibrateGIFImageViewFrame() -> Void { subclassMustImplement() }
+
+  open func recalibrateOtherImageViewFrame() -> Void { subclassMustImplement() }
+
+  open func subclassMustImplement(_ method: String = #function) -> Void {
+    fatalError("subclass must implement \(method)")
+  }
+
+
+  // MARK: - UIScrollViewDelegate
+
+  public func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+    return imageView
+  }
+
+  public func scrollViewDidZoom(_ scrollView: UIScrollView) {
+    updateScrollViewInsets(true)
+  }
+
+
+
+
+  // MARK: - UIViewController
+
+  override open var prefersStatusBarHidden: Bool {
+    return isStatusBarHidden
+  }
+
+  // MARK: - KVO
+
+  override open func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+    if observeImageSize(forKeyPath: keyPath) {
+      recalibrateImageViewFrame()
+    } else {
+      super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
+    }
+  }
+
+  // MARK: - deinit
+
+  deinit {
+    removeImageObserver()
+    orientationObserver.map{ NotificationCenter.default.removeObserver($0) }
+    PhotoViewManager.default.notificationCenter.removeObserver(self)
+  }
+
 
 }

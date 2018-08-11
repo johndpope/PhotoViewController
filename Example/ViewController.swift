@@ -107,6 +107,8 @@ class ViewController: UITableViewController {
       if #available(iOS 9.1, *) {
         resource.displayLivePhoto(inLivePhotView: nil, inImageView: imageView)
       }
+    case .gif:
+      _ = resource.retrieving(.custom(nil, imageView))
     default:
       break
     }
@@ -233,7 +235,7 @@ extension ViewController {
         fatalError("You should never select this on old OS")
       }
     } else {
-      return .fallback(springDampingRatio: damping, initialSpringVelocity: 0, options: animationCurve)
+      return .fallback(springDampingRatio: damping, initialSpringVelocity: 1, options: animationCurve)
     }
   }
 }
@@ -286,9 +288,9 @@ extension ViewController {
       imageView.clipsToBounds = true
       imageView.layer.cornerRadius = 0
     }
-    t.userAnimation = { interactive, imageView in
+    t.userAnimation = { interactive, cancelled, imageView in
       if !interactive {
-        imageView.layer.cornerRadius = cornerRadius
+        imageView.layer.cornerRadius = cancelled ? 0 : cornerRadius
       }
     }
     return t
@@ -386,14 +388,13 @@ extension ViewController: UIImagePickerControllerDelegate {
               datum[0].append(MediaResource(type: .gif, identifier: UUID().uuidString, retrieving: {
                 switch $0 {
                 case let .custom(gifView, imageView):
-                  if let gifView = gifView as? FLAnimatedImageView {
-                    PHImageManager.default().requestImageData(for: asset, options: nil, resultHandler: { (data, _, _, _) in
-                      let fl = FLAnimatedImage(gifData: data!)!
-                      imageView?.image = fl.posterImage
+                  PHImageManager.default().requestImageData(for: asset, options: nil, resultHandler: { (data, _, _, _) in
+                    let fl = FLAnimatedImage(gifData: data!)!
+                    imageView?.image = fl.posterImage
+                    if let gifView = gifView as? FLAnimatedImageView {
                       gifView.animatedImage = fl
-                    })
-                  }
-                  break
+                    }
+                  })
                 default:
                   break
                 }
@@ -410,7 +411,7 @@ extension ViewController: UIImagePickerControllerDelegate {
               }))
               return
             }
-            
+
           }
 
           if let edited = info[.editedImage] as? UIImage {

@@ -82,9 +82,10 @@ open class PhotoViewManager {
     }
   }
 
-  public func resetImmersingState() {
-    if enabledImmersingState.contains(defaultImmersingState) {
-      immersingState = defaultImmersingState
+  public func reloadImmersingState(_ reset: Bool) {
+    let state = reset ? defaultImmersingState : immersingState
+    if enabledImmersingState.contains(state) {
+      immersingState = state
     }
   }
 
