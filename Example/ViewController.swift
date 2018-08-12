@@ -44,8 +44,8 @@ class ViewController: UITableViewController {
     NotificationCenter.default.addObserver(forName: NSNotification.Name.configDidUpdate, object: nil, queue: nil) { _ in
       self.tableView.reloadData()
     }
-    navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Setting", style: UIBarButtonItem.Style.plain, target: self, action: #selector(gotoSetting))
-    navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Photos", style: UIBarButtonItem.Style.plain, target: self, action: #selector(gotoPicker))
+    navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Setting", style: .plain, target: self, action: #selector(gotoSetting))
+    navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Photos", style: .plain, target: self, action: #selector(gotoPicker))
     navigationController?.delegate = self
   }
 
@@ -118,24 +118,20 @@ class ViewController: UITableViewController {
   override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
     tableView.deselectRow(at: indexPath, animated: false)
     selectedIndexP = indexPath
-    PhotoViewManager.default.defaultImmersingState = defaultState
+    PhotoViewManager.default.defaultImmersiveMode = defaultState
     PhotoViewManager.default.viewTapAction = viewTapAction
     let customPage = CustomPhotoPageController(modally: modally, startIndex: indexPath, resources: datum)
     customPage.page!.loop = pageLoop
     customPage.transitioningDelegate = self
     customPage.modalPresentationStyle = .custom
-    let deleteBlock: (inout [[MediaResource]], IndexPath) -> MediaResource = { (collection, idxPath) in
-      collection[idxPath.section].remove(at: idxPath.row)
-    }
-    customPage.page!.resourcesDeleteHandler = deleteBlock
-    customPage.page!.didScrollToPage = { [weak customPage, weak self] idxPath in
+    customPage.page!.didScrollToPageHandler = { [weak customPage, weak self] idxPath in
       guard let strongself = self else { return }
       customPage?.pageControl?.numberOfPages = strongself.datum[idxPath.section].count
       customPage?.pageControl?.currentPage = idxPath.row
     }
-    customPage.page!.resourcesDeleteDidCompleteBlock = { [weak self] idxPath, _ in
+    customPage.page!.resourcesDeleteDidCompleteHandler = { [weak self] idxPath, _ in
       guard let strongself = self else { return }
-      _ = deleteBlock(&strongself.datum, idxPath)
+      strongself.datum.removeItemAt(indexPath: idxPath)
       strongself.tableView.reloadData()
     }
     if modally {
@@ -154,8 +150,8 @@ extension ViewController {
     return ExampleConfigManager.shared.viewTap.currentValue as! PhotoViewTapAction
   }
 
-  var defaultState: PhotoImmersingState {
-    return ExampleConfigManager.shared.defaultState.currentValue as! PhotoImmersingState
+  var defaultState: PhotoImmersiveMode {
+    return ExampleConfigManager.shared.defaultState.currentValue as! PhotoImmersiveMode
   }
 
   var modally: Bool {
@@ -190,19 +186,19 @@ extension ViewController {
     return ExampleConfigManager.shared.dismissSpringDamping.currentValue as! CGFloat
   }
 
-  var showCurve: UIView.AnimationOptions {
-    return ExampleConfigManager.shared.showCurve.currentValue as! UIView.AnimationOptions
+  var showCurve: ViewAnimationOptions {
+    return ExampleConfigManager.shared.showCurve.currentValue as! ViewAnimationOptions
   }
 
-  var dismissCurve: UIView.AnimationOptions {
-    return ExampleConfigManager.shared.dismissCurve.currentValue as! UIView.AnimationOptions
+  var dismissCurve: ViewAnimationOptions {
+    return ExampleConfigManager.shared.dismissCurve.currentValue as! ViewAnimationOptions
   }
 
-  var imageContentMode: UIView.ContentMode {
-    return ExampleConfigManager.shared.imageContentMode.currentValue as! UIView.ContentMode
+  var imageContentMode: ViewContentMode {
+    return ExampleConfigManager.shared.imageContentMode.currentValue as! ViewContentMode
   }
 
-  func curve(_ option: UIView.AnimationOptions) -> UIView.AnimationCurve {
+  func curve(_ option: ViewAnimationOptions) -> ViewAnimationCurve {
     if option.contains(.curveEaseInOut) {
       return .easeInOut
     } else if option.contains(.curveEaseIn) {
@@ -273,6 +269,9 @@ extension ViewController {
   func transitionFrom(dismissed viewController: UIViewController) -> UIViewControllerAnimatedTransitioning? {
     guard let viewController = viewController as? CustomPhotoPageController else { return nil }
     let selectedIndexP = viewController.page!.userCurrentIndexPath
+    guard tableView.numberOfSections > selectedIndexP.section && tableView.numberOfRows(inSection: selectedIndexP.section) > selectedIndexP.row  else {
+      return nil
+    }
     tableView.scrollToRow(at: selectedIndexP, at: .none, animated: false)
     guard let cell = tableView.cellForRow(at: selectedIndexP) else { return nil }
     guard let imageView = cell.contentView.firstSubview(ofType: UIImageView.self) else { return nil }
@@ -320,7 +319,13 @@ extension ViewController: UIViewControllerTransitioningDelegate {
 // MARK: - navigation push
 extension ViewController: UINavigationControllerDelegate {
 
-  func navigationController(_ navigationController: UINavigationController, animationControllerFor operation: UINavigationController.Operation, from fromVC: UIViewController, to toVC: UIViewController) -> UIViewControllerAnimatedTransitioning? {
+  #if swift(>=4.2)
+  typealias NavigationControllerOperation = UINavigationController.Operation
+  #else
+  typealias NavigationControllerOperation = UINavigationControllerOperation
+  #endif
+
+  func navigationController(_ navigationController: UINavigationController, animationControllerFor operation: NavigationControllerOperation, from fromVC: UIViewController, to toVC: UIViewController) -> UIViewControllerAnimatedTransitioning? {
     switch operation {
     case .push:
       return transitionTo(showing: toVC)
@@ -341,93 +346,148 @@ extension ViewController: UINavigationControllerDelegate {
 
 // MARK: - pick photo
 extension ViewController: UIImagePickerControllerDelegate {
+
+  #if swift(>=4.2)
+  typealias ImagePickerControllerInfoKey = UIImagePickerController.InfoKey
+  var imagePickerControllerMediaType: ImagePickerControllerInfoKey {
+  return .mediaType
+  }
+  var imagePickerControllerOriginalImage: ImagePickerControllerInfoKey {
+  return .originalImage
+  }
+  var imagePickerControllerEditedImage: ImagePickerControllerInfoKey {
+  return .editedImage
+  }
+  var imagePickerControllerReferenceURL: ImagePickerControllerInfoKey {
+  return .referenceURL
+  }
+  @available(iOS 9.1, *)
+  var imagePickerControllerLivePhoto: ImagePickerControllerInfoKey {
+  return .livePhoto
+  }
+  @available(iOS 11.0, *)
+  var imagePickerControllerPHAsset: ImagePickerControllerInfoKey {
+  return .phAsset
+  }
+  #else
+  typealias ImagePickerControllerInfoKey = String
+  var imagePickerControllerMediaType: ImagePickerControllerInfoKey {
+    return UIImagePickerControllerMediaType
+  }
+  var imagePickerControllerOriginalImage: ImagePickerControllerInfoKey {
+    return UIImagePickerControllerOriginalImage
+  }
+  var imagePickerControllerEditedImage: ImagePickerControllerInfoKey {
+    return UIImagePickerControllerEditedImage
+  }
+  var imagePickerControllerReferenceURL: ImagePickerControllerInfoKey {
+    return UIImagePickerControllerReferenceURL
+  }
+  @available(iOS 9.1, *)
+  var imagePickerControllerLivePhoto: ImagePickerControllerInfoKey {
+    return UIImagePickerControllerLivePhoto
+  }
+  @available(iOS 11.0, *)
+  var imagePickerControllerPHAsset: ImagePickerControllerInfoKey {
+    return UIImagePickerControllerPHAsset
+  }
+  #endif
   @objc func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
     picker.dismiss(animated: true, completion: nil)
   }
 
-  @objc func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+  @objc func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [ImagePickerControllerInfoKey : Any]) {
     defer {
       tableView.reloadData()
       picker.dismiss(animated: true, completion: nil)
     }
-    var handled: Bool = false
-    if let type = info[.mediaType] as? String {
-      if #available(iOS 9.1, *) {
-        if type == kUTTypeLivePhoto as String {
-          handled = true
-          var __asset: PHAsset?
-          if let live = info[.livePhoto] as? PHLivePhoto {
-            var size: CGSize = .zero
-            if live.size.isValid {
-              size = live.size
-            } else {
-              if #available(iOS 11.0, *) {
-                if let asset = info[.phAsset] as? PHAsset, CGSize(width: asset.pixelWidth, height: asset.pixelHeight).isValid {
-                  size = CGSize(width: asset.pixelWidth, height: asset.pixelHeight)
-                  __asset = asset
-                }
-              }
-            }
-            datum[0].append(MediaResource(setLivePhotoBlock: { (photoView, imageView) in
-              __asset?.loadImage(completion: { (image) in
-                imageView?.image = image
-              })
-              photoView?.livePhoto = live
-              return size
-            }))
+    let type = info[imagePickerControllerMediaType] as? String
+    let url = info[imagePickerControllerReferenceURL] as? URL
+    let edited = info[imagePickerControllerEditedImage] as? UIImage
+    let original = info[imagePickerControllerOriginalImage] as? UIImage
+    var livePhoto: Any?
+    var asset: PHAsset?
+    if #available(iOS 9.1, *) {
+      livePhoto = info[imagePickerControllerLivePhoto]
+    }
+
+    if #available(iOS 11.0, *) {
+      asset = info[imagePickerControllerPHAsset] as? PHAsset
+      /// referenceURL is deprecated, for demo only
+    }
+
+    if #available(iOS 9.1, *) {
+      if let livePhoto = livePhoto as? PHLivePhoto {
+        var size: CGSize = .zero
+        if livePhoto.size.isValid {
+          size = livePhoto.size
+        } else {
+          if let asset = asset, CGSize(width: asset.pixelWidth, height: asset.pixelHeight).isValid {
+            size = CGSize(width: asset.pixelWidth, height: asset.pixelHeight)
           }
         }
+        datum[0].append(MediaResource(setLivePhotoBlock: { (photoView, imageView) in
+          asset?.loadImage(completion: { (image) in
+            imageView?.image = image
+          })
+          photoView?.livePhoto = livePhoto
+          return size
+        }))
+        return
       }
+    }
 
-      if !handled {
-        if type == kUTTypeImage as String {
-          if #available(iOS 11.0, *) {
-
-            /// referenceURL is deprecated, for demo only
-            if let url = info[.referenceURL] as? URL, url.absoluteString.uppercased().contains("GIF"), let asset = info[.phAsset] as? PHAsset {
-              datum[0].append(MediaResource(type: .gif, identifier: UUID().uuidString, retrieving: {
-                switch $0 {
-                case let .custom(gifView, imageView):
-                  PHImageManager.default().requestImageData(for: asset, options: nil, resultHandler: { (data, _, _, _) in
-                    let fl = FLAnimatedImage(gifData: data!)!
-                    imageView?.image = fl.posterImage
-                    if let gifView = gifView as? FLAnimatedImageView {
-                      gifView.animatedImage = fl
-                    }
-                  })
-                default:
-                  break
-                }
-                return nil
-              }))
-              return
-            }
-
-            if let asset = info[.phAsset] as? PHAsset {
-              datum[0].append(MediaResource(setImageBlock: { (imageView) in
-                asset.loadImage(completion: { (image) in
-                  imageView?.image = image
-                })
-              }))
-              return
-            }
-
+    if type == kUTTypeImage as String {
+      if let url = url, url.absoluteString.uppercased().contains("GIF"), let asset = asset {
+        datum[0].append(MediaResource(type: .gif, identifier: UUID().uuidString, retrieving: {
+          switch $0 {
+          case let .custom(gifView, imageView):
+            PHImageManager.default().requestImageData(for: asset, options: nil, resultHandler: { (data, _, _, _) in
+              let fl = FLAnimatedImage(gifData: data!)!
+              imageView?.image = fl.posterImage
+              if let gifView = gifView as? FLAnimatedImageView {
+                gifView.animatedImage = fl
+              }
+            })
+          default:
+            break
           }
-
-          if let edited = info[.editedImage] as? UIImage {
-            datum[0].append(MediaResource(setImageBlock: { (imageView) in
-              imageView?.image = edited
-            }))
-          } else if let original = info[.originalImage] as? UIImage {
-            datum[0].append(MediaResource(setImageBlock: { (imageView) in
-              imageView?.image = original
-            }))
-          }
-        }
+          return nil
+        }))
+        return
+      }
+      if let url = url {
+        datum[0].append(MediaResource(setImageBlock: { (imageView) in
+          PHAsset.fetchAssets(withALAssetURLs: [url], options: nil).firstObject?.loadImage(completion: { (image) in
+            imageView?.image = image
+          })
+        }))
+        return
+      }
+      if let asset = asset {
+        datum[0].append(MediaResource(setImageBlock: { (imageView) in
+          asset.loadImage(completion: { (image) in
+            imageView?.image = image
+          })
+        }))
+        return
+      }
+      if let edited = edited {
+        datum[0].append(MediaResource(setImageBlock: { (imageView) in
+          imageView?.image = edited
+        }))
+        return
+      }
+      if let original = original {
+        datum[0].append(MediaResource(setImageBlock: { (imageView) in
+          imageView?.image = original
+        }))
+        return
       }
     }
   }
 }
+
 
 extension PHAsset {
   func loadImage(size: CGSize = CGSize(width: 500, height: 500), completion: @escaping (UIImage?) -> Void) -> Void {

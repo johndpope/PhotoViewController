@@ -10,8 +10,14 @@ import Foundation
 import PhotosUI
 import AVFoundation
 
+#if swift(>=4.2)
+typealias GestureRecognizerState = UIGestureRecognizer.State
+#else
+typealias GestureRecognizerState = UIGestureRecognizerState
+#endif
+
 // somehow I cannot log state directly
-extension UIGestureRecognizer.State {
+extension GestureRecognizerState {
   var name: String {
     switch self {
     case .began:
@@ -75,9 +81,13 @@ extension Comparable {
 
 open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestureRecognizerDelegate {
 
-  public let modally: Bool
+  public let isModalTransition : Bool
   public let contentView: UIView
-  public private(set) var isStatusBarHidden: Bool = false
+  public private(set) var isStatusBarHidden: Bool = false {
+    didSet {
+      setNeedsStatusBarAppearanceUpdate()
+    }
+  }
 
   public let resource: MediaResource
   public let scrollView: UIScrollView
@@ -93,6 +103,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   public private(set) var isZoomingAndRotating: Bool = false
 
   public var embededScrollView: UIScrollView? {
+
     return upsearch(from: view, maximumSearch: 5, type: UIScrollView.self, father: {
       $0?.superview
     })
@@ -154,8 +165,8 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
 
   // MARK: - init method
 
-  public init(modally: Bool, resource: MediaResource) {
-    self.modally = modally
+  public init(isModalTransition: Bool, resource: MediaResource) {
+    self.isModalTransition  = isModalTransition
     self.resource = resource
     self.contentView = UIView(frame: CGRect.zero)
     self.scrollView = UIScrollView(frame: CGRect.zero)
@@ -172,11 +183,11 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     configScrollView()
     configImageView()
     addImageObserver()
-    addImmersionObserver()
+    addImmersiveModeObserver()
     addOrientationObserver()
     configGestureRecognizer()
     loadResource()
-    updateImmersingUI()
+    updateImmersiveUI()
   }
 
   // MARK: - initial setup
@@ -189,8 +200,10 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     if #available(iOS 11.0, *) {
       scrollView.contentInsetAdjustmentBehavior = .never
     } else {
+      automaticallyAdjustsScrollViewInsets = false
       // Fallback on earlier versions
     }
+
     scrollView.backgroundColor = UIColor.clear
     scrollView.delegate = self
     scrollView.maximumZoomScale = 4
@@ -304,10 +317,10 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   // MARK: - dismissal
 
   open func uniformDismiss() -> Void {
-    if modally {
+    if isModalTransition  {
       dismiss(animated: true, completion: nil)
     } else {
-      updateImmersingUI(.normal)
+      updateImmersiveUI(.normal)
       navigationController?.popViewController(animated: true)
     }
   }
@@ -351,8 +364,8 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   @objc open func handleSingleTap(_ tap: UITapGestureRecognizer) -> Void {
     debuglog("Tap(single) state: \(tap.state.name)")
     switch PhotoViewManager.default.viewTapAction {
-    case .toggleImmersingState:
-      PhotoViewManager.default.nextImmersingState()
+    case .toggleImmersiveMode:
+      PhotoViewManager.default.nextImmersiveMode()
     case .dismiss:
       scrollView.zoomToMin(at: .zero)
       uniformDismiss()
@@ -450,21 +463,20 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     }
   }
 
-  // MARK: - ImmersingUI
+  // MARK: - ImmersiveUI
 
-  open func updateImmersingUI(_ state: PhotoImmersingState? = nil) -> Void {
+  open func updateImmersiveUI(_ state: PhotoImmersiveMode? = nil) -> Void {
     debuglog(#function)
     let isNavigationBarHidden: Bool
-    switch state ?? PhotoViewManager.default.immersingState {
+    switch state ?? PhotoViewManager.default.immersiveMode {
     case .normal:
       isStatusBarHidden = false
       isNavigationBarHidden = false
-    case .immersed:
+    case .immersive:
       isStatusBarHidden = true
       isNavigationBarHidden = true
     }
     navigationController?.setNavigationBarHidden(isNavigationBarHidden, animated: true)
-    setNeedsStatusBarAppearanceUpdate()
   }
 
   // MARK: - UIGestureRecognizerDelegate
@@ -501,9 +513,14 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
 
 
   // MARK: - Orientation
+  #if swift(>=4.2)
+  let didChangeStatusBarOrientationNotificationName: NSNotification.Name = UIApplication.didChangeStatusBarOrientationNotification
+  #else
+  let didChangeStatusBarOrientationNotificationName: NSNotification.Name = NSNotification.Name.UIApplicationDidChangeStatusBarOrientation
+  #endif
 
   open func addOrientationObserver() -> Void {
-    orientationObserver = NotificationCenter.default.addObserver(forName: UIApplication.didChangeStatusBarOrientationNotification, object: nil, queue: nil, using: { [weak self] _ in
+    orientationObserver = NotificationCenter.default.addObserver(forName: didChangeStatusBarOrientationNotificationName, object: nil, queue: nil, using: { [weak self] _ in
       DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: {
         self?.updateContentViewFrame()
       })
@@ -570,14 +587,14 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     return false
   }
 
-  // MARK: - immersion observer
+  // MARK: - ImmersiveMode observer
 
-  open func addImmersionObserver() {
-    PhotoViewManager.default.notificationCenter.addObserver(self, selector: #selector(handleImmersionStateDidChangeNotification(_:)), name: NSNotification.Name.PhotoViewControllerImmersionDidChange, object: nil)
+  open func addImmersiveModeObserver() {
+    PhotoViewManager.default.notificationCenter.addObserver(self, selector: #selector(handleImmersiveModeDidChangeNotification(_:)), name: NSNotification.Name.PhotoViewControllerImmersiveModeDidChange, object: nil)
   }
 
-  @objc func handleImmersionStateDidChangeNotification(_ note: Notification) -> Void {
-    updateImmersingUI()
+  @objc func handleImmersiveModeDidChangeNotification(_ note: Notification) -> Void {
+    updateImmersiveUI()
   }
 
   // MARK: - snapshot view

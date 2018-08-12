@@ -54,7 +54,7 @@ class MyPhotoShowController: PhotoShowController {
 /// mypage
 class MyPagingController<T: IndexPathSearchable>: PhotoPageController<T> {
   override func photoShow(modally: Bool, resource: MediaResource) -> UIViewController {
-    return MyPhotoShowController(modally: modally, resource: resource)
+    return MyPhotoShowController(isModalTransition: modally, resource: resource)
   }
 }
 
@@ -65,7 +65,7 @@ class CustomPhotoPageController: UIViewController {
   var pageControl: UIPageControl?
   convenience init(modally: Bool, startIndex: IndexPath, resources: [[MediaResource]]) {
     self.init(nibName: nil, bundle: nil)
-    page = MyPagingController(modally: modally, startIndexPath: startIndex, resources: resources)
+    page = MyPagingController(isModalTransition: modally, startIndexPath: startIndex, resources: resources)
   }
 
   override func viewDidLoad() {
@@ -103,6 +103,7 @@ class CustomPhotoPageController: UIViewController {
       pageControl.heightAnchor.constraint(equalToConstant: 20).isActive = true
       pageControl.widthAnchor.constraint(equalToConstant: 300).isActive = true
     } else {
+      pageControl.frame = view.bounds.divided(atDistance: 40, from: .maxYEdge).slice
       // Fallback on earlier versions
     }
   }

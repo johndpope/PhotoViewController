@@ -14,7 +14,7 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
   let option: ImageZoomAnimationOption
   let image: UIImage?
   var fromImageViewFrame: CGRect?
-  let fromImageViewContentMode: UIView.ContentMode
+  let fromImageViewContentMode: ViewContentMode
   let provider: ImageZoomProvider
   let animationWillBegin: (() -> Void)?
   let animationDidFinish: ((Bool) -> Void)?
@@ -56,7 +56,7 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
         return UIViewPropertyAnimator(duration: $0, dampingRatio: 0.6, animations: nil)
       }
     } else {
-      option = ImageZoomAnimationOption.fallback(springDampingRatio: 1, initialSpringVelocity: 0, options: [UIView.AnimationOptions.curveEaseInOut])
+      option = ImageZoomAnimationOption.fallback(springDampingRatio: 1, initialSpringVelocity: 0, options: [ViewAnimationOptions.curveEaseInOut])
     }
     self.init(duration: duration, option: option, animator: animator, animationWillBegin: animationWillBegin, animationDidFinish: animationDidFinish)
   }
@@ -127,9 +127,9 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
         toVC.view.isHidden = false
         transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
       }
-      guard let self = self else { return }
-      self.provider.currentImageViewHidden = false
-      self.animationDidFinish?(!transitionContext.transitionWasCancelled)
+      guard let strongself = self else { return }
+      strongself.provider.currentImageViewHidden = false
+      strongself.animationDidFinish?(!transitionContext.transitionWasCancelled)
     }
     switch option {
     case let .fallback(springDampingRatio, initialSpringVelocity, options):

@@ -10,20 +10,20 @@ import Foundation
 
 
 public extension Notification.Name {
-  public static var PhotoViewControllerImmersionDidChange: Notification.Name {
-    return Notification.Name(rawValue: "PhotoViewControllerImmersionDidChange")
+  public static var PhotoViewControllerImmersiveModeDidChange: Notification.Name {
+    return Notification.Name(rawValue: "PhotoViewControllerImmersiveModeDidChange")
   }
 }
 
 public enum PhotoViewTapAction {
-  case toggleImmersingState
+  case toggleImmersiveMode
   case dismiss
 }
 
 
-public enum PhotoImmersingState {
+public enum PhotoImmersiveMode {
   case normal
-  case immersed
+  case immersive
 }
 
 public enum PhotoViewContentPosition {
@@ -46,46 +46,46 @@ open class PhotoViewManager {
 
   public static let `default`: PhotoViewManager = PhotoViewManager()
 
-  public private(set) var immersingState: PhotoImmersingState = .normal {
+  public private(set) var immersiveMode: PhotoImmersiveMode = .normal {
     didSet {
-      notificationCenter.post(name: NSNotification.Name.PhotoViewControllerImmersionDidChange, object: nil)
+      notificationCenter.post(name: NSNotification.Name.PhotoViewControllerImmersiveModeDidChange, object: nil)
     }
   }
 
   public var hintImage: UIImage?
 
-  public var viewTapAction: PhotoViewTapAction = .toggleImmersingState
+  public var viewTapAction: PhotoViewTapAction = .toggleImmersiveMode
 
-  public var defaultImmersingState: PhotoImmersingState = .normal
+  public var defaultImmersiveMode: PhotoImmersiveMode = .normal
 
-  public var enabledImmersingState: [PhotoImmersingState] = [.normal, .immersed]
+  public var enabledImmersiveMode: [PhotoImmersiveMode] = [.normal, .immersive]
 
-  public func nextImmersingState() {
-    let future: PhotoImmersingState
-    switch immersingState {
+  public func nextImmersiveMode() {
+    let future: PhotoImmersiveMode
+    switch immersiveMode {
     case .normal:
-      future = .immersed
-    case .immersed:
+      future = .immersive
+    case .immersive:
       future = .normal
     }
-    if enabledImmersingState.contains(future) {
-      immersingState = future
+    if enabledImmersiveMode.contains(future) {
+      immersiveMode = future
     }
   }
 
   public var interactiveDismissScaleFactor: CGFloat = 0.5
 
 
-  public func forceSetImmersingState(_ state: PhotoImmersingState) {
-    if enabledImmersingState.contains(state) {
-      immersingState = state
+  public func forceSetImmersiveMode(_ state: PhotoImmersiveMode) {
+    if enabledImmersiveMode.contains(state) {
+      immersiveMode = state
     }
   }
 
-  public func reloadImmersingState(_ reset: Bool) {
-    let state = reset ? defaultImmersingState : immersingState
-    if enabledImmersingState.contains(state) {
-      immersingState = state
+  public func reloadImmersiveMode(_ reset: Bool) {
+    let state = reset ? defaultImmersiveMode : immersiveMode
+    if enabledImmersiveMode.contains(state) {
+      immersiveMode = state
     }
   }
 

@@ -13,19 +13,21 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
   let option: ImageZoomAnimationOption
   let image: UIImage?
   var toImageViewFrame: CGRect?
-  let toImageViewContentMode: UIView.ContentMode
+  private var toImageView: UIImageView?
+  let toImageViewContentMode: ViewContentMode
   let provider: ImageZoomProvider
   let animationWillBegin: (() -> Void)?
   let animationDidFinish: ((Bool) -> Void)?
   var imageViewTransformBlock: ((CGAffineTransform) -> Void)?
 
   /// only valid when option is ImageZoomAnimationOption.fallback
-  var deferredCompletion: Bool = false
+  private var deferredCompletion: Bool = false
   public var prepareAnimation: ((_ imageView: UIImageView) -> Void)?
   public var userAnimation: ((_ isInteractive: Bool, _ isCancelled: Bool, _ imageView: UIImageView) -> Void)?
 
+  // workaround on @available of stored property
   @available(iOS 10.0, *)
-  var animator: UIViewPropertyAnimator? {
+  private var animator: UIViewPropertyAnimator? {
     get {
       return animatorInternal as? UIViewPropertyAnimator
     }
@@ -34,7 +36,7 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
     }
   }
 
-  var animatorInternal: Any?
+  private var animatorInternal: Any?
 
   public init(duration: TimeInterval,
               option: ImageZoomAnimationOption,
@@ -48,7 +50,7 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
     switch animator {
     case let .dismissToImageView(toImageView, provider):
       self.image = provider.currentImage
-      self.toImageViewFrame = toImageView.superview?.convert(toImageView.frame, to: UIApplication.shared.keyWindow)
+      self.toImageView = toImageView
       self.toImageViewContentMode = toImageView.contentMode
       self.provider = provider
     case let .dismissToImageViewFrame(toImageViewFrame, toImageViewContentMode, provider):
@@ -68,10 +70,10 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
     let option: ImageZoomAnimationOption
     if #available(iOS 10.0, *) {
       option = ImageZoomAnimationOption.perferred {
-        return UIViewPropertyAnimator(duration: $0, curve: UIView.AnimationCurve.easeInOut, animations: nil)
+        return UIViewPropertyAnimator(duration: $0, curve: ViewAnimationCurve.easeInOut, animations: nil)
       }
     } else {
-      option = ImageZoomAnimationOption.fallback(springDampingRatio: 1, initialSpringVelocity: 0, options: [UIView.AnimationOptions.curveEaseIn])
+      option = ImageZoomAnimationOption.fallback(springDampingRatio: 1, initialSpringVelocity: 0, options: [ViewAnimationOptions.curveEaseIn])
     }
     self.init(duration: duration, option: option, animator: animator, animationWillBegin: animationWillBegin, animationDidFinish: animationDidFinish)
   }
@@ -80,7 +82,7 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
     return provider.dismissalInteractiveController
   }
 
-  var interactiveController: ZoomOutAnimatedInteractiveController? {
+  private var interactiveController: ZoomOutAnimatedInteractiveController? {
     return interactiveTransitioning as? ZoomOutAnimatedInteractiveController
   }
 
@@ -107,7 +109,7 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
 
     defer {
       if aborted {
-        if provider.modally {
+        if provider.isModalTransition {
           containerSuperview?.addSubview(toVC.view)
         }
       }
@@ -122,13 +124,19 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
     guard let toSnapshotView = toVC.view.snapshotView(afterScreenUpdates: true) else { aborted = true; return }
 
     guard let image = image else { aborted = true; return }
+    if let _toImageView = toImageView {
+      toImageViewFrame = _toImageView.superview?.convert(_toImageView.frame, to: UIApplication.shared.keyWindow)
+      toImageView = nil
+    }
     guard let toImageViewFrame = toImageViewFrame else { aborted = true; return }
     guard let fromImageViewFrame = provider.currentImageViewFrame else { aborted = true; return }
 
     fromVC.view.isHidden = false
     toVC.view.isHidden = false
+    toVC.view.frame = transitionContext.finalFrame(for: toVC)
 
     containerView.addSubview(toSnapshotView)
+    toSnapshotView.frame = transitionContext.finalFrame(for: toVC)
     containerView.addSubview(fromSnapshotView)
 
     let mockSourceImageView = UIImageView(image: image)
@@ -142,6 +150,16 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
       interactiveController.addObserver(self, forKeyPath: #keyPath(ZoomOutAnimatedInteractiveController.progress), options: [.new], context: nil)
       interactiveController.addObserver(self, forKeyPath: #keyPath(ZoomOutAnimatedInteractiveController.transform), options: [.new], context: nil)
       interactiveController.observedInteractive = true
+      interactiveController.removeObserverBlock = { [weak interactiveController, weak self] in
+        guard let strongself = self else { return }
+        guard let strongInteractiveController = interactiveController else { return }
+        if strongInteractiveController.observedInteractive {
+          strongInteractiveController.removeObserver(strongself, forKeyPath: #keyPath(ZoomOutAnimatedInteractiveController.progress))
+          strongInteractiveController.removeObserver(strongself, forKeyPath: #keyPath(ZoomOutAnimatedInteractiveController.transform))
+          strongInteractiveController.observedInteractive = false
+          strongInteractiveController.removeObserverBlock = nil
+        }
+      }
     }
 
     let animtions: (_ interactive: Bool, _ isCancelled: Bool) -> Void = { [weak self] interactive, isCancelled in
@@ -168,16 +186,12 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
         // for status bar
         if let strongContext = transitionContext {
           strongContext.completeTransition(!strongContext.transitionWasCancelled)
-          PhotoViewManager.default.reloadImmersingState(!strongContext.transitionWasCancelled)
+          PhotoViewManager.default.reloadImmersiveMode(!strongContext.transitionWasCancelled)
         }
-      }
-      if let interactiveController = strongself.interactiveController, interactiveController.observedInteractive {
-        interactiveController.removeObserver(strongself, forKeyPath: #keyPath(ZoomOutAnimatedInteractiveController.progress))
-        interactiveController.removeObserver(strongself, forKeyPath: #keyPath(ZoomOutAnimatedInteractiveController.transform))
       }
       strongself.provider.currentImageViewHidden = false
       strongself.animationDidFinish?(!strongContext.transitionWasCancelled)
-      if strongself.provider.modally && !strongContext.transitionWasCancelled {
+      if strongself.provider.isModalTransition && !strongContext.transitionWasCancelled {
         containerView?.superview?.addSubview(toVC.view)
       }
     }
@@ -264,4 +278,15 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
   @objc dynamic public var transform: CGAffineTransform = .identity
   var observedInteractive: Bool = false
   public var continueAnimation: (() -> Void)?
+  var removeObserverBlock: (() -> Void)?
+
+  public override func finish() {
+    super.finish()
+    removeObserverBlock?()
+  }
+
+  public override func cancel() {
+    super.cancel()
+    removeObserverBlock?()
+  }
 }

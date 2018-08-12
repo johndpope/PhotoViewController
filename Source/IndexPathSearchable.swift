@@ -16,7 +16,7 @@ extension MediaResource: IndexPathSearchable {
 
   public func allIndexPaths(where predicate: (MediaResource) -> Bool, matchFirst: Bool) -> [IndexPath] {
     if predicate(self) {
-      return [[Int.max]]
+      return [IndexPath(index: Int.max)]
     }
     return []
   }
@@ -31,7 +31,12 @@ extension Array where Element: Equatable {
       }
     }
     let allElements = self
-    if let flatIndex = allElements.firstIndex(of: element) {
+    #if swift(>=4.2)
+    let flatIndex = allElements.firstIndex(of: element)
+    #else
+    let flatIndex = allElements.index(of: element)
+    #endif
+    if let flatIndex = flatIndex {
       var nextFlatIndex: Int?
       let destinationFlatIndex: Int
       if forward {
@@ -87,7 +92,7 @@ extension Array: IndexPathSearchable where Element: IndexPathSearchable {
     return allIndexPaths(where: predicate, matchFirst: true).first
   }
 
-  func unsafeLoop(indexPath: IndexPath, _ action: (([Any], Int) -> Void)) -> Void {
+  func getLoop(indexPath: IndexPath, _ action: (([Any], Int) -> Void)) -> Void {
     var array: [Any] = self
     indexPath.forEach { (index) in
       if array is [MediaResource] {
@@ -98,15 +103,42 @@ extension Array: IndexPathSearchable where Element: IndexPathSearchable {
     }
   }
 
+  @discardableResult
+  public mutating func removeItemAt(indexPath: IndexPath) -> MediaResource {
+    var ret: Any?
+    unsafeLoop(indexPath: indexPath) { (typeSubArray, index) in
+      ret = typeSubArray.remove(at: index)
+    }
+    return ret as! MediaResource
+  }
+
   public subscript(resource indexPath: IndexPath) -> MediaResource {
     get {
       var ret: Any?
-      unsafeLoop(indexPath: indexPath) { (typeSubArray, index) in
+      getLoop(indexPath: indexPath) { (typeSubArray, index) in
         ret = typeSubArray[index]
       }
       return ret as! MediaResource
     }
   }
+}
+
+extension Array {
+
+  mutating func unsafeLoop(indexPath: IndexPath, _ action: ((inout [Any], Int) -> Void)) -> Void {
+    assert(indexPath.count > 0)
+    var array: [Any] = self
+    let index = indexPath[0]
+    if indexPath.count == 1 {
+      action(&array, index)
+    } else {
+      var subArray = array[index] as! [Any]
+      subArray.unsafeLoop(indexPath: indexPath.dropFirst(), action)
+      array[index] = subArray
+    }
+    self = array as! Array<Element>
+  }
+
 }
 
 

@@ -33,7 +33,7 @@ class SettingViewController: UITableViewController {
     let seg = cell.contentView.firstSubview(ofType: UISegmentedControl.self)!
     seg.tag = 1000 + indexPath.row
     seg.removeAllSegments()
-    seg.addTarget(self, action: #selector(changeIndex(_:)), for: UIControl.Event.valueChanged)
+    seg.addTarget(self, action: #selector(changeIndex(_:)), for: .valueChanged)
     config.availableStrings.enumerated().forEach { (offset, element) in
       seg.insertSegment(withTitle: element, at: offset, animated: false)
     }

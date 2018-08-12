@@ -12,9 +12,12 @@ import UIKit
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
   var window: UIWindow?
-
-
-  func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+  #if swift(>=4.2)
+  typealias ApplicationLaunchOptionsKey = UIApplication.LaunchOptionsKey
+  #else
+  typealias ApplicationLaunchOptionsKey = UIApplicationLaunchOptionsKey
+  #endif
+  func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [ApplicationLaunchOptionsKey: Any]?) -> Bool {
     // Override point for customization after application launch.
     return true
   }
