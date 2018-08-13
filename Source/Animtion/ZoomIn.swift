@@ -93,7 +93,6 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
 
     guard let toSnapshotView = toVC.snapshotViewOnlyPageView(afterScreenUpdates: true) else { aborted = true; return }
 
-
     guard let image = image else { aborted = true; return }
     PhotoViewManager.default.hintImage = image
     guard let sourceImageViewFrame = fromImageViewFrame else { aborted = true; return }

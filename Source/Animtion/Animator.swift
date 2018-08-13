@@ -38,3 +38,8 @@ public enum ImageZoomAnimationOption {
   @available(iOS 10.0, *)
   case perferred((TimeInterval) -> UIViewPropertyAnimator)
 }
+
+public protocol ImageZoomForceTouchProvider: class {
+  var isForceTouching: Bool { set get }
+  func updatePreferredContentSize() -> Void
+}

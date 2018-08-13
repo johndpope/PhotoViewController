@@ -388,7 +388,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     debuglog("Pan state: \(pan.state.name)")
     guard scrollView.reachMinZoomScale else { return }
     let translation = pan.translation(in: pan.view)
-    if translation.y <= 0 && dismissalInteractiveController == nil {
+    if translation.y < 0 && dismissalInteractiveController == nil {
       return
     }
     let percentComplete: CGFloat = (translation.y / UIScreen.main.bounds.height).clamp(0, 1)
@@ -758,7 +758,6 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     fatalError("subclass must implement \(method)")
   }
 
-
   // MARK: - UIScrollViewDelegate
 
   public func viewForZooming(in scrollView: UIScrollView) -> UIView? {
@@ -768,9 +767,6 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   public func scrollViewDidZoom(_ scrollView: UIScrollView) {
     updateScrollViewInsets(true)
   }
-
-
-
 
   // MARK: - UIViewController
 

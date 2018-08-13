@@ -13,6 +13,6 @@ public extension CGSize {
     return width > 0 && height > 0
   }
   public var aspectRatio: CGFloat {
-    return width / height
+    return height / width 
   }
 }

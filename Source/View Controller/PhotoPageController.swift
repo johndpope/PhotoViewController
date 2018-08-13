@@ -15,6 +15,7 @@ func debuglog(_ items: Any...) -> Void {
   #endif
 }
 
+
 #if swift(>=4.2)
 let interPageSpacingKey = UIPageViewController.OptionsKey.interPageSpacing
 public typealias PageViewControllerNavigationOrientation = UIPageViewController.NavigationOrientation
@@ -25,7 +26,13 @@ public typealias PageViewControllerTransitionStyle = UIPageViewControllerTransit
 public typealias PageViewControllerNavigationOrientation = UIPageViewControllerNavigationOrientation
 #endif
 
-open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPageViewControllerDelegate, UIPageViewControllerDataSource, ImageZoomProvider {
+open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPageViewControllerDelegate, UIPageViewControllerDataSource, ImageZoomProvider, ImageZoomForceTouchProvider {
+
+  public var isForceTouching: Bool = false {
+    didSet {
+      updatePreferredContentSize()
+    }
+  }
 
   public private(set) var isModalTransition: Bool = false
 
@@ -157,25 +164,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     }
   }
 
-  // MARK: - Auto Layout
 
-  @available(iOS 9.0, *)
-  func addConstraint<R>(fromView: UIView?, toView: UIView?, getAnchor: (UIView) -> NSLayoutAnchor<R>) {
-    guard let view1 = fromView else { return }
-    guard let view2 = toView else { return }
-    getAnchor(view1).constraint(equalTo: getAnchor(view2)).isActive = true
-  }
-
-  #if swift(>=4.2)
-  typealias LayoutConstraintAttribute = NSLayoutConstraint.Attribute
-  #else
-  typealias LayoutConstraintAttribute = NSLayoutAttribute
-  #endif
-  func addConstraint(fromView: UIView?, toView: UIView?, attribute: LayoutConstraintAttribute) {
-    guard let view1 = fromView else { return }
-    guard let view2 = toView else { return }
-    NSLayoutConstraint(item: view1, attribute: attribute, relatedBy: .equal, toItem: view2, attribute: attribute, multiplier: 1.0, constant: 0.0).isActive = true
-  }
 
   // MARK: - Add UIPageViewController
 
@@ -189,18 +178,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     #endif
     view.addSubview(pageController.view)
     pageController.view.backgroundColor = UIColor.clear
-    if #available(iOS 9.0, *) {
-      addConstraint(fromView: pageController.view, toView: view, getAnchor: { $0.topAnchor })
-      addConstraint(fromView: pageController.view, toView: view, getAnchor: { $0.bottomAnchor })
-      addConstraint(fromView: pageController.view, toView: view, getAnchor: { $0.leftAnchor })
-      addConstraint(fromView: pageController.view, toView: view, getAnchor: { $0.rightAnchor })
-    } else {
-      addConstraint(fromView: pageController.view, toView: view, attribute: .top)
-      addConstraint(fromView: pageController.view, toView: view, attribute: .bottom)
-      addConstraint(fromView: pageController.view, toView: view, attribute: .left)
-      addConstraint(fromView: pageController.view, toView: view, attribute: .right)
-      // Fallback on earlier versions
-    }
+    pageController.view.inset(inView: view)
     pageController.delegate = self
     pageController.dataSource = self
     scrollTo(page: pagingStartIndexPath, forward: true)
@@ -342,8 +320,17 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     return currentPhotoViewController?.preferredStatusBarStyle ?? statusBarStyle
   }
 
-  // MARK: - deinit
+  open func updatePreferredContentSize() -> Void {
+    self.preferredContentSize = PhotoViewManager.default.contentSize(forPreviewing: self.isForceTouching, resourceSize: self.currentImageViewFrame?.size)
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+      UIView.animate(withDuration: 0.05) {
+        self.view.layoutIfNeeded()
+        self.currentPhotoViewController?.updateContentViewFrame()
+      }
+    }
+  }
 
+  // MARK: - deinit
 
   deinit {
     PhotoViewManager.default.notificationCenter.removeObserver(self)

@@ -61,7 +61,19 @@ class MyPagingController<T: IndexPathSearchable>: PhotoPageController<T> {
 
 
 /// custom
-class CustomPhotoPageController: UIViewController {
+class CustomPhotoPageController: UIViewController, ImageZoomForceTouchProvider {
+
+  var isForceTouching: Bool = false {
+    didSet {
+      page?.isForceTouching = isForceTouching
+      updatePreferredContentSize()
+    }
+  }
+
+  func updatePreferredContentSize() {
+    preferredContentSize = page!.preferredContentSize
+  }
+
   var page: MyPagingController<[MediaResource]>?
   var pageControl: UIPageControl?
   convenience init(modally: Bool, startIndex: IndexPath, resources: [[MediaResource]]) {

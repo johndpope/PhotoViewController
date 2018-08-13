@@ -99,6 +99,7 @@ class ViewController: UITableViewController {
     imageView?.image = nil
     imageView?.layer.cornerRadius = cornerRadius
     imageView?.clipsToBounds = true
+    imageView?.isUserInteractionEnabled = true
     let resource = datum[indexPath.section][indexPath.row]
     switch resource.type {
     case .image:
@@ -115,11 +116,22 @@ class ViewController: UITableViewController {
     return cell
   }
 
-  override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-    tableView.deselectRow(at: indexPath, animated: false)
+  override func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+    if #available(iOS 9.0, *) {
+      if traitCollection.forceTouchCapability == .available {
+        if let imageView = cell.contentView.firstSubview(ofType: UIImageView.self) {
+          registerForPreviewing(with: self, sourceView: imageView)
+        }
+      }
+    }
+  }
+
+  func showController(at indexPath: IndexPath, previewing: Bool) -> UIViewController? {
     selectedIndexP = indexPath
     PhotoViewManager.default.defaultImmersiveMode = defaultState
     PhotoViewManager.default.viewTapAction = viewTapAction
+    let cell = tableView.cellForRow(at: indexPath)!
+    PhotoViewManager.default.hintImage = cell.contentView.firstSubview(ofType: UIImageView.self)?.image
     let customPage = CustomPhotoPageController(modally: modally, startIndex: indexPath, resources: datum)
     customPage.page!.loop = pageLoop
     customPage.transitioningDelegate = self
@@ -134,10 +146,41 @@ class ViewController: UITableViewController {
       strongself.datum.removeItemAt(indexPath: idxPath)
       strongself.tableView.reloadData()
     }
+    customPage.view.alpha = 1
+    customPage.isForceTouching = previewing
+    customPage.hidesBottomBarWhenPushed = true
+    return customPage
+  }
+
+  override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    tableView.deselectRow(at: indexPath, animated: false)
+    let customPage = showController(at: indexPath, previewing: false)!
     if modally {
       navigationController?.present(customPage, animated: true, completion: nil)
     } else {
       navigationController?.pushViewController(customPage, animated: true)
+    }
+  }
+
+}
+
+extension ViewController: UIViewControllerPreviewingDelegate {
+
+  @available(iOS 9.0, *)
+  func previewingContext(_ previewingContext: UIViewControllerPreviewing, viewControllerForLocation location: CGPoint) -> UIViewController? {
+    if let cell = previewingContext.sourceView.superview?.superview as? UITableViewCell, let indexPath = tableView.indexPath(for: cell) {
+      return showController(at: indexPath, previewing: true)
+    }
+    return nil
+  }
+
+  @available(iOS 9.0, *)
+  func previewingContext(_ previewingContext: UIViewControllerPreviewing, commit viewControllerToCommit: UIViewController) {
+    (viewControllerToCommit as? ImageZoomForceTouchProvider)?.isForceTouching = false
+    if modally {
+      navigationController?.present(viewControllerToCommit, animated: true, completion: nil)
+    } else {
+      navigationController?.pushViewController(viewControllerToCommit, animated: true)
     }
   }
 

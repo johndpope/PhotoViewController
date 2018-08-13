@@ -7,7 +7,7 @@
 //
 
 import Foundation
-
+import AVFoundation.AVUtilities
 
 public extension Notification.Name {
   public static var PhotoViewControllerImmersiveModeDidChange: Notification.Name {
@@ -51,6 +51,8 @@ open class PhotoViewManager {
       notificationCenter.post(name: NSNotification.Name.PhotoViewControllerImmersiveModeDidChange, object: nil)
     }
   }
+
+  public var longestPreviewingContentSize: CGSize = CGSize(width: 1, height: 6)
 
   public var hintImage: UIImage?
 
@@ -110,10 +112,27 @@ open class PhotoViewManager {
 
   private func defaultContentMode(for size: CGSize) -> PhotoViewContentMode? {
     guard size.isValid else { return nil }
-    if size.aspectRatio < UIScreen.main.bounds.size.aspectRatio {
+    if size.aspectRatio > UIScreen.main.bounds.size.aspectRatio {
       return .fitWidth(.center)
     } else {
       return .fitScreen
+    }
+  }
+
+  public func contentSize(forPreviewing previewing: Bool, resourceSize: CGSize?) -> CGSize {
+    let bounds = UIScreen.main.bounds
+    let boundsSize = bounds.size
+    guard previewing else { return boundsSize }
+    let hintSize = hintImage?.size
+    guard let size = hintSize ?? resourceSize else { return boundsSize }
+    guard let contentMode = defaultContentMode(for: size) else { return boundsSize }
+    switch contentMode {
+    case .fitScreen:
+      return AVMakeRect(aspectRatio: size, insideRect: bounds).size
+    case .fitWidth:
+      let longest = AVMakeRect(aspectRatio: longestPreviewingContentSize, insideRect: bounds)
+      let desired = AVMakeRect(aspectRatio: size, insideRect: bounds)
+      return longest.union(desired).size
     }
   }
 

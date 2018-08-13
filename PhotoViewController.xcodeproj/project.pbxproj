@@ -11,6 +11,7 @@
 		77CDE573F75E9A80544C2D5C /* Pods_PhotoViewController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 34889C44A239A0DBAE46213E /* Pods_PhotoViewController.framework */; };
 		999B0F21211D325D00598F1F /* CGSize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 999B0F20211D325D00598F1F /* CGSize.swift */; };
 		99E0726721213183005154AA /* UIViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99E0726621213183005154AA /* UIViewController.swift */; };
+		99E07269212160DF005154AA /* UIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99E07268212160DF005154AA /* UIView.swift */; };
 		99F9EE2E2112FA8E005CA7F8 /* PhotoViewController.h in Headers */ = {isa = PBXBuildFile; fileRef = 99F9EE2C2112FA8E005CA7F8 /* PhotoViewController.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		99F9EE3B2112FAC0005CA7F8 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE3A2112FAC0005CA7F8 /* AppDelegate.swift */; };
 		99F9EE402112FAC0005CA7F8 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 99F9EE3E2112FAC0005CA7F8 /* Main.storyboard */; };
@@ -65,6 +66,7 @@
 		77235CD9ECC28152EFAA7CCB /* Pods-PhotoViewController.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-PhotoViewController.release.xcconfig"; path = "Pods/Target Support Files/Pods-PhotoViewController/Pods-PhotoViewController.release.xcconfig"; sourceTree = "<group>"; };
 		999B0F20211D325D00598F1F /* CGSize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CGSize.swift; sourceTree = "<group>"; };
 		99E0726621213183005154AA /* UIViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewController.swift; sourceTree = "<group>"; };
+		99E07268212160DF005154AA /* UIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIView.swift; sourceTree = "<group>"; };
 		99F9EE292112FA8E005CA7F8 /* PhotoViewController.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = PhotoViewController.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		99F9EE2C2112FA8E005CA7F8 /* PhotoViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PhotoViewController.h; sourceTree = "<group>"; };
 		99F9EE2D2112FA8E005CA7F8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -205,6 +207,7 @@
 			children = (
 				99F9EE652117F51D005CA7F8 /* UIScrollView.swift */,
 				99E0726621213183005154AA /* UIViewController.swift */,
+				99E07268212160DF005154AA /* UIView.swift */,
 				999B0F20211D325D00598F1F /* CGSize.swift */,
 			);
 			path = Extension;
@@ -433,6 +436,7 @@
 				99F9EE612117F488005CA7F8 /* PhotoPageController.swift in Sources */,
 				999B0F21211D325D00598F1F /* CGSize.swift in Sources */,
 				99E0726721213183005154AA /* UIViewController.swift in Sources */,
+				99E07269212160DF005154AA /* UIView.swift in Sources */,
 				99F9EE512112FB46005CA7F8 /* MediaResource.swift in Sources */,
 				99F9EE5C2117DECE005CA7F8 /* ZoomOut.swift in Sources */,
 				99F9EE5921143E50005CA7F8 /* ZoomIn.swift in Sources */,
