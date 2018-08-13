@@ -13,6 +13,7 @@ import FLAnimatedImage
 
 /// myshow
 class MyPhotoShowController: PhotoShowController {
+
   lazy var gifView: FLAnimatedImageView = FLAnimatedImageView(frame: .zero)
 
   override func configGIFImageView() {
@@ -92,18 +93,21 @@ class CustomPhotoPageController: UIViewController {
   func addPageControl() -> Void {
     let pageControl = UIPageControl(frame: .zero)
     self.pageControl = pageControl
-    view.addSubview(pageControl)
+    view?.addSubview(pageControl)
     pageControl.pageIndicatorTintColor = UIColor.lightGray
     pageControl.currentPageIndicatorTintColor = UIColor.darkGray
     pageControl.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     pageControl.translatesAutoresizingMaskIntoConstraints = false
     if #available(iOS 9.0, *) {
-      pageControl.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -20).isActive = true
+      pageControl.bottomAnchor.constraint(equalTo: bottomLayoutGuide.topAnchor, constant: -20).isActive = true
       pageControl.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
       pageControl.heightAnchor.constraint(equalToConstant: 20).isActive = true
       pageControl.widthAnchor.constraint(equalToConstant: 300).isActive = true
     } else {
-      pageControl.frame = view.bounds.divided(atDistance: 40, from: .maxYEdge).slice
+      NSLayoutConstraint(item: pageControl, attribute: .bottom, relatedBy: .equal, toItem: bottomLayoutGuide, attribute: .top, multiplier: 1, constant: 0).isActive = true
+      NSLayoutConstraint(item: pageControl, attribute: .centerX, relatedBy: .equal, toItem: view, attribute: .centerX, multiplier: 1, constant: 0).isActive = true
+      NSLayoutConstraint(item: pageControl, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 20).isActive = true
+      NSLayoutConstraint(item: pageControl, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 300).isActive = true
       // Fallback on earlier versions
     }
   }

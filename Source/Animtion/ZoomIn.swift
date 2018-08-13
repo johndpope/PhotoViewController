@@ -85,10 +85,13 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
     containerView.addSubview(fromVC.view)
     containerView.addSubview(toVC.view)
     toVC.view.frame = transitionContext.finalFrame(for: toVC)
+    // for snapshot without page, autolayout
+    toVC.view.setNeedsLayout()
+    toVC.view.layoutIfNeeded()
 
     guard let fromSnapshotView = fromVC.view.snapshotView(afterScreenUpdates: true) else { aborted = true; return }
-    guard let toSnapshotView = toVC.view.snapshotView(afterScreenUpdates: true) else { aborted = true; return }
 
+    guard let toSnapshotView = toVC.snapshotViewOnlyPageView(afterScreenUpdates: true) else { aborted = true; return }
 
 
     guard let image = image else { aborted = true; return }
@@ -112,8 +115,17 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
     prepareAnimation?(mockSourceImageView)
     containerView.addSubview(mockSourceImageView)
 
+    // like a sandwich, top -> bottom: (toControlSnapshotView, mockSourceImageView, toSnapshotView)
+    let toControlSnapshotView = toVC.snapshotViewExceptPageView(afterScreenUpdates: true)
+    if let toControlSnapshotView = toControlSnapshotView {
+      containerView.addSubview(toControlSnapshotView)
+      toControlSnapshotView.alpha = 0
+      toControlSnapshotView.frame = toSnapshotView.frame
+    }
+
     let animtions: () -> Void = { [weak self] in
       toSnapshotView.alpha = 1
+      toControlSnapshotView?.alpha = 1
       fromSnapshotView.alpha = 0
       mockSourceImageView.frame = toImageViewFrame
       mockSourceImageView.contentMode = .scaleAspectFit
@@ -124,6 +136,7 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
         fromSnapshotView.removeFromSuperview()
         toSnapshotView.removeFromSuperview()
         mockSourceImageView.removeFromSuperview()
+        toControlSnapshotView?.removeFromSuperview()
         toVC.view.isHidden = false
         transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
       }

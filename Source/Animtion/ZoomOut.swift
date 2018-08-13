@@ -119,8 +119,7 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
     containerView.addSubview(toVC.view)
     containerView.addSubview(fromVC.view)
 
-
-    guard let fromSnapshotView = fromVC.view.snapshotView(afterScreenUpdates: true) else { aborted = true; return }
+    guard let fromSnapshotView = fromVC.snapshotViewOnlyPageView(afterScreenUpdates: true) else { aborted = true; return }
     guard let toSnapshotView = toVC.view.snapshotView(afterScreenUpdates: true) else { aborted = true; return }
 
     guard let image = image else { aborted = true; return }
@@ -146,6 +145,13 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
     prepareAnimation?(mockSourceImageView)
     containerView.addSubview(mockSourceImageView)
 
+    // like a sandwich, top -> bottom: (fromControlSnapshotView, mockSourceImageView, fromSnapshotView)
+    let fromControlSnapshotView = fromVC.snapshotViewExceptPageView(afterScreenUpdates: true)
+    if let fromControlSnapshotView = fromControlSnapshotView {
+      containerView.addSubview(fromControlSnapshotView)
+      fromControlSnapshotView.frame = fromSnapshotView.frame
+    }
+
     if let interactiveController = interactiveController {
       interactiveController.addObserver(self, forKeyPath: #keyPath(ZoomOutAnimatedInteractiveController.progress), options: [.new], context: nil)
       interactiveController.addObserver(self, forKeyPath: #keyPath(ZoomOutAnimatedInteractiveController.transform), options: [.new], context: nil)
@@ -164,6 +170,7 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
 
     let animtions: (_ interactive: Bool, _ isCancelled: Bool) -> Void = { [weak self] interactive, isCancelled in
       fromSnapshotView.alpha = isCancelled ? 1 : 0
+      fromControlSnapshotView?.alpha = isCancelled ? 1 : 0
       self?.userAnimation?(interactive, isCancelled, mockSourceImageView)
       if !interactive {
         mockSourceImageView.transform = .identity
@@ -180,9 +187,10 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
         return
       }
       defer {
-        mockSourceImageView.removeFromSuperview()
         toSnapshotView.removeFromSuperview()
         fromSnapshotView.removeFromSuperview()
+        mockSourceImageView.removeFromSuperview()
+        fromControlSnapshotView?.removeFromSuperview()
         // for status bar
         if let strongContext = transitionContext {
           strongContext.completeTransition(!strongContext.transitionWasCancelled)

@@ -8,7 +8,7 @@
 
 import Foundation
 import PhotosUI
-import AVFoundation
+import AVFoundation.AVUtilities
 
 #if swift(>=4.2)
 typealias GestureRecognizerState = UIGestureRecognizer.State
@@ -710,7 +710,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     case .fitWidth(let position):
       scrollView.contentInset = .zero
       if !zooming, position ~= .center {
-        scrollView.setContentOffset(CGPoint(x: 0, y: (scrollView.contentSize.height - scrollView.frame.height) / 2), animated: false)
+        scrollView.scrollRectToVisible(AVMakeRect(aspectRatio: view.bounds.size, insideRect: imageView.frame), animated: false)
       }
     }
   }
