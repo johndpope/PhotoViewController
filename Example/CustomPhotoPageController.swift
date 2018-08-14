@@ -124,4 +124,18 @@ class CustomPhotoPageController: UIViewController, ImageZoomForceTouchProvider {
     }
   }
 
+
+  @available(iOS 9.0, *)
+  override var previewActionItems: [UIPreviewActionItem] {
+    return [UIPreviewAction(title: "Save to Library", style: .default, handler: { [weak self] (_, controller) in
+      self?.page?.currentImage.map({
+        UIImageWriteToSavedPhotosAlbum($0, nil, nil, nil)
+      })
+      controller.dismiss(animated: true, completion: nil)
+    }), UIPreviewAction(title: "Delete", style: .destructive, handler: { [weak self] (_, controller) in
+      self?.page?.removeCurrentResource()
+      controller.dismiss(animated: true, completion: nil)
+    })];
+  }
+
 }
