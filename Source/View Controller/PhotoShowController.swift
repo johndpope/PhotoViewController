@@ -81,6 +81,11 @@ extension Comparable {
 
 open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestureRecognizerDelegate {
 
+  public var isForceTouching: Bool = false {
+    didSet {
+      forceTouchDidChange()
+    }
+  }
   public let isModalTransition : Bool
   public let contentView: UIView
   public private(set) var isStatusBarHidden: Bool = false {
@@ -229,9 +234,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     case .image:
       break
     case .livePhoto:
-      if #available(iOS 9.1, *) {
-        singleTapGestureRecognizer.require(toFail: livePhotoView.playbackGestureRecognizer)
-      }
+      break
     case .gif:
       configGIFGestureRecognizer()
     case .unspecified:
@@ -482,6 +485,15 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   // MARK: - UIGestureRecognizerDelegate
 
   public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+    if gestureRecognizer == singleTapGestureRecognizer {
+      if #available(iOS 9.1, *) {
+        if resource.type ~= .livePhoto {
+          let state = livePhotoView.playbackGestureRecognizer.state
+          debuglog("Live Photo Playback Gesture: \(state.name)")
+          return state ~= .possible
+        }
+      }
+    }
     if gestureRecognizer == dismissalGestureRecognizer {
       let translation =  dismissalGestureRecognizer.translation(in: dismissalGestureRecognizer.view)
       return translation.y > 0 && !isZoomingAndRotating
@@ -758,6 +770,26 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     fatalError("subclass must implement \(method)")
   }
 
+
+  // MARK: - 3d touch
+
+  open func forceTouchDidChange() -> Void {
+    if #available(iOS 9.1, *) {
+      if resource.type ~= .livePhoto {
+        if isForceTouching {
+          startPlayingLivePhoto()
+        } else {
+          livePhotoView.stopPlayback()
+        }
+      }
+    }
+  }
+
+  @available(iOS 9.1, *)
+  open func startPlayingLivePhoto() -> Void {
+    livePhotoView.startPlayback(with: .full)
+  }
+
   // MARK: - UIScrollViewDelegate
 
   public func viewForZooming(in scrollView: UIScrollView) -> UIView? {
@@ -774,11 +806,22 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     return isStatusBarHidden
   }
 
+  open func imageDidChange() -> Void {
+    recalibrateImageViewFrame()
+    if #available(iOS 9.1, *) {
+      if resource.type ~= .livePhoto {
+        if isForceTouching {
+          startPlayingLivePhoto()
+        }
+      }
+    }
+  }
+
   // MARK: - KVO
 
   override open func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
     if observeImageSize(forKeyPath: keyPath) {
-      recalibrateImageViewFrame()
+      imageDidChange()
     } else {
       super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
     }

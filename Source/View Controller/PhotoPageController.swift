@@ -31,6 +31,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   public var isForceTouching: Bool = false {
     didSet {
       updatePreferredContentSize()
+      currentPhotoViewController?.isForceTouching = isForceTouching
     }
   }
 
