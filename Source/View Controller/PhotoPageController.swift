@@ -322,13 +322,10 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   }
 
   open func updatePreferredContentSize() -> Void {
-    self.preferredContentSize = PhotoViewManager.default.contentSize(forPreviewing: self.isForceTouching, resourceSize: self.currentImageViewFrame?.size)
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-      UIView.animate(withDuration: 0.05) {
-        self.view.layoutIfNeeded()
-        self.currentPhotoViewController?.updateContentViewFrame()
-      }
-    }
+    let size = PhotoViewManager.default.contentSize(forPreviewing: self.isForceTouching, resourceSize: self.currentImageViewFrame?.size)
+    self.preferredContentSize = size
+    self.currentPhotoViewController?.view.frame = CGRect(origin: .zero, size: size)
+    self.currentPhotoViewController?.updateContentViewFrame()
   }
 
   // MARK: - deinit
