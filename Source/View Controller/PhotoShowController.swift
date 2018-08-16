@@ -107,6 +107,8 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
 
   public private(set) var isZoomingAndRotating: Bool = false
 
+  public private(set) var singleTouchInLivePhotoEnabled: Bool = true
+
   public var embededScrollView: UIScrollView? {
 
     return upsearch(from: view, maximumSearch: 5, type: UIScrollView.self, father: {
@@ -215,11 +217,6 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     scrollView.minimumZoomScale = 1
   }
 
-
-
-
-
-
   open func configGestureRecognizer() -> Void {
     doubleTapGestureRecognizer.delegate = self
     singleTapGestureRecognizer.delegate = self
@@ -265,6 +262,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
         imageView.isUserInteractionEnabled = true
         let livePhotoBadge = UIImageView(image: PHLivePhotoView.livePhotoBadgeImage(options: [.overContent]))
         imageView.addSubview(livePhotoBadge)
+        livePhotoView.playbackGestureRecognizer.addObserver(self, forKeyPath: #keyPath(UIGestureRecognizer.state), options: [.new], context: nil)
       }
     case .gif:
       configGIFImageView()
@@ -365,6 +363,9 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
 
 
   @objc open func handleSingleTap(_ tap: UITapGestureRecognizer) -> Void {
+    guard singleTouchInLivePhotoEnabled else {
+      return
+    }
     debuglog("Tap(single) state: \(tap.state.name)")
     switch PhotoViewManager.default.viewTapAction {
     case .toggleImmersiveMode:
@@ -485,15 +486,6 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   // MARK: - UIGestureRecognizerDelegate
 
   public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-    if gestureRecognizer == singleTapGestureRecognizer {
-      if #available(iOS 9.1, *) {
-        if resource.type ~= .livePhoto {
-          let state = livePhotoView.playbackGestureRecognizer.state
-          debuglog("Live Photo Playback Gesture: \(state.name)")
-          return state ~= .possible
-        }
-      }
-    }
     if gestureRecognizer == dismissalGestureRecognizer {
       let translation =  dismissalGestureRecognizer.translation(in: dismissalGestureRecognizer.view)
       return translation.y > 0 && !isZoomingAndRotating
@@ -519,6 +511,18 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     }
     if otherGestureRecognizer.view is UIScrollView {
       return false
+    }
+    return true
+  }
+
+  public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+    if #available(iOS 9.1, *) {
+      if resource.type ~= .livePhoto {
+        // i need any one gestureRecognizer reset singleTouchInLivePhotoEnabled when touch begin
+        if gestureRecognizer == doubleTapGestureRecognizer {
+          singleTouchInLivePhotoEnabled = true
+        }
+      }
     }
     return true
   }
@@ -773,6 +777,14 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
 
   // MARK: - 3d touch
 
+  func removeLivePhotoGestureObserver() -> Void {
+    if #available(iOS 9.1, *) {
+      if resource.type ~= .livePhoto {
+        livePhotoView.playbackGestureRecognizer.removeObserver(self, forKeyPath: #keyPath(UIGestureRecognizer.state))
+      }
+    }
+  }
+
   open func forceTouchDidChange() -> Void {
     if #available(iOS 9.1, *) {
       if resource.type ~= .livePhoto {
@@ -822,6 +834,12 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   override open func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
     if observeImageSize(forKeyPath: keyPath) {
       imageDidChange()
+    } else if keyPath == #keyPath(UIGestureRecognizer.state) {
+      if let raw = change?[.newKey] as? Int, let state = GestureRecognizerState(rawValue: raw) {
+        if state ~= .changed {
+          singleTouchInLivePhotoEnabled = false
+        }
+      }
     } else {
       super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
     }
@@ -831,6 +849,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
 
   deinit {
     removeImageObserver()
+    removeLivePhotoGestureObserver()
     orientationObserver.map{ NotificationCenter.default.removeObserver($0) }
     PhotoViewManager.default.notificationCenter.removeObserver(self)
   }
