@@ -30,7 +30,8 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
 
   public var isForceTouching: Bool = false {
     didSet {
-      updatePreferredContentSize()
+      let size = PhotoViewManager.default.contentSize(forPreviewing: self.isForceTouching, resourceSize: self.currentImageViewFrame?.size)
+      self.pageController.preferredContentSize = size
       currentPhotoViewController?.isForceTouching = isForceTouching
     }
   }
@@ -321,11 +322,11 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     return currentPhotoViewController?.preferredStatusBarStyle ?? statusBarStyle
   }
 
-  open func updatePreferredContentSize() -> Void {
-    let size = PhotoViewManager.default.contentSize(forPreviewing: self.isForceTouching, resourceSize: self.currentImageViewFrame?.size)
+  open override func preferredContentSizeDidChange(forChildContentContainer container: UIContentContainer) {
+    let size = container.preferredContentSize
     self.preferredContentSize = size
-    self.currentPhotoViewController?.view.frame = CGRect(origin: .zero, size: size)
-    self.currentPhotoViewController?.updateContentViewFrame()
+    self.currentPhotoViewController?.updateContentViewFrame(size)
+    super.preferredContentSizeDidChange(forChildContentContainer: container)
   }
 
   // MARK: - deinit

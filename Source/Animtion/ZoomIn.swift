@@ -20,6 +20,8 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
   let animationDidFinish: ((Bool) -> Void)?
   public var prepareAnimation: ((_ imageView: UIImageView) -> Void)?
   public var userAnimation: ((_ isInteractive: Bool, _ imageView: UIImageView) -> Void)?
+  public var transitionDidFinish: (() -> Void)?
+
 
   public init(duration: TimeInterval,
               option: ImageZoomAnimationOption,
@@ -164,6 +166,10 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
         fatalError("never happens")
       }
     }
+  }
+
+  deinit {
+    transitionDidFinish?()
   }
 
 }

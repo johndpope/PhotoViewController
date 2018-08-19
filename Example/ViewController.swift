@@ -46,7 +46,6 @@ class ViewController: UITableViewController {
     }
     navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Setting", style: .plain, target: self, action: #selector(gotoSetting))
     navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Photos", style: .plain, target: self, action: #selector(gotoPicker))
-    navigationController?.delegate = self
   }
 
   @objc func gotoPicker() -> Void {
@@ -153,6 +152,7 @@ class ViewController: UITableViewController {
   }
 
   override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    navigationController?.delegate = self
     tableView.deselectRow(at: indexPath, animated: false)
     let customPage = showController(at: indexPath, previewing: false)!
     if modally {
@@ -334,6 +334,9 @@ extension ViewController {
       if !interactive {
         imageView.layer.cornerRadius = cancelled ? 0 : cornerRadius
       }
+    }
+    t.transitionDidFinish = { [weak self] in
+      self?.navigationController?.delegate = nil
     }
     return t
   }

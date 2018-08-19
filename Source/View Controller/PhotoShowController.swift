@@ -191,7 +191,6 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     configImageView()
     addImageObserver()
     addImmersiveModeObserver()
-    addOrientationObserver()
     configGestureRecognizer()
     loadResource()
     updateImmersiveUI()
@@ -529,26 +528,16 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
 
 
   // MARK: - Orientation
-  #if swift(>=4.2)
-  let didChangeStatusBarOrientationNotificationName: NSNotification.Name = UIApplication.didChangeStatusBarOrientationNotification
-  #else
-  let didChangeStatusBarOrientationNotificationName: NSNotification.Name = NSNotification.Name.UIApplicationDidChangeStatusBarOrientation
-  #endif
 
-  open func addOrientationObserver() -> Void {
-    orientationObserver = NotificationCenter.default.addObserver(forName: didChangeStatusBarOrientationNotificationName, object: nil, queue: nil, using: { [weak self] _ in
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: {
-        self?.updateContentViewFrame()
-      })
-    })
+  open override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+    updateContentViewFrame(size)
   }
 
-  open func updateContentViewFrame() -> Void {
-    contentView.frame = view.bounds
-    let scale = scrollView.zoomScale
+  open func updateContentViewFrame(_ size: CGSize? = nil) -> Void {
+    let frame = CGRect(origin: .zero, size: size ?? view.bounds.size)
+    contentView.frame = frame
     scrollView.frame = contentView.bounds
     recalibrateImageViewFrame()
-    scrollView.setZoomScale(scale, animated: false)
   }
 
   // MARK: - resource content size observer
@@ -671,10 +660,12 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     guard let contentMode = PhotoViewManager.default.contenMode(for: resourceSize) else { return
       false
     }
+    let scale = scrollView.zoomScale
+    scrollView.setZoomScale(1, animated: false)
     let tuple = destinationResourceContentFrame(contentMode: contentMode, size: resourceSize)
     imageView.frame = tuple.framOnScrollView
-    scrollView.setZoomScale(1, animated: false)
     updateScrollViewInsets(false)
+    scrollView.setZoomScale(scale, animated: false)
     return true
   }
 
@@ -689,14 +680,14 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   }
 
   open func destinationContentFrameToAspectFit(size: CGSize) -> (framOnWindow: CGRect, framOnScrollView: CGRect) {
-    var _frame = AVMakeRect(aspectRatio: size, insideRect: view.bounds)
+    var _frame = AVMakeRect(aspectRatio: size, insideRect: contentView.bounds)
     let __frame = _frame
     _frame.origin = .zero
     return (__frame, _frame)
   }
 
   open func destinationContentFrameToFitWidth(size: CGSize, position: PhotoViewContentPosition) -> (framOnWindow: CGRect, framOnScrollView: CGRect) {
-    let bounds = view.bounds
+    let bounds = contentView.bounds
     var _frame = AVMakeRect(aspectRatio: size, insideRect: bounds)
     _frame.origin = .zero
     let scale = bounds.width / _frame.width

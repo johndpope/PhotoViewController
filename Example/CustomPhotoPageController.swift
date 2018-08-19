@@ -66,12 +66,12 @@ class CustomPhotoPageController: UIViewController, ImageZoomForceTouchProvider {
   var isForceTouching: Bool = false {
     didSet {
       page?.isForceTouching = isForceTouching
-      updatePreferredContentSize()
     }
   }
 
-  func updatePreferredContentSize() {
-    preferredContentSize = page!.preferredContentSize
+  override func preferredContentSizeDidChange(forChildContentContainer container: UIContentContainer) {
+    self.preferredContentSize = container.preferredContentSize
+    super.preferredContentSizeDidChange(forChildContentContainer: container)
   }
 
   var page: MyPagingController<[MediaResource]>?

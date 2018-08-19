@@ -110,9 +110,14 @@ open class PhotoViewManager {
     return contentModeBlock?(size) ?? defaultContentMode(for:size)
   }
 
+  public var portraitScreenBounds: CGRect {
+    let rect = UIScreen.main.bounds
+    return CGRect(x: 0, y: 0, width: min(rect.width, rect.height), height: max(rect.width, rect.height))
+  }
+
   private func defaultContentMode(for size: CGSize) -> PhotoViewContentMode? {
     guard size.isValid else { return nil }
-    if size.aspectRatio > UIScreen.main.bounds.size.aspectRatio {
+    if size.aspectRatio > portraitScreenBounds.size.aspectRatio {
       return .fitWidth(.center)
     } else {
       return .fitScreen

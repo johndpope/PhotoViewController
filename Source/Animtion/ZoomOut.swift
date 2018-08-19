@@ -24,6 +24,7 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
   private var deferredCompletion: Bool = false
   public var prepareAnimation: ((_ imageView: UIImageView) -> Void)?
   public var userAnimation: ((_ isInteractive: Bool, _ isCancelled: Bool, _ imageView: UIImageView) -> Void)?
+  public var transitionDidFinish: (() -> Void)?
 
   // workaround on @available of stored property
   @available(iOS 10.0, *)
@@ -276,6 +277,10 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
     } else {
       super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
     }
+  }
+
+  deinit {
+    transitionDidFinish?()
   }
 
 }
