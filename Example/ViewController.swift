@@ -30,7 +30,7 @@ class ViewController: UITableViewController {
       return (0...10).map({ String(format: "https://raw.githubusercontent.com/onevcat/Kingfisher/master/images/kingfisher-%d.jpg", $0) })
         .map({ urlString in
           return MediaResource(setImageBlock: { imageView in
-            imageView?.af_setImage(withURL: URL(string: urlString)!)
+            imageView?.af_setImage(withURL: URL(string: urlString)!, placeholderImage: UIImage(named: "placeholder"))
           })
         })
       // "https://raw.githubusercontent.com/onevcat/Kingfisher/master/images/kingfisher-0.jpg" is for testing HTTP-404 not found

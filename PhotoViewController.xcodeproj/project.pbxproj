@@ -10,6 +10,7 @@
 		202D46CCEA9357AB5641BF84 /* Pods_Example.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5EA7F91FDB0227DEB11735AE /* Pods_Example.framework */; };
 		77CDE573F75E9A80544C2D5C /* Pods_PhotoViewController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 34889C44A239A0DBAE46213E /* Pods_PhotoViewController.framework */; };
 		999B0F21211D325D00598F1F /* CGSize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 999B0F20211D325D00598F1F /* CGSize.swift */; };
+		99C55792212BDE9D00C50142 /* placeholder.png in Resources */ = {isa = PBXBuildFile; fileRef = 99C55791212BDE9D00C50142 /* placeholder.png */; };
 		99E0726721213183005154AA /* UIViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99E0726621213183005154AA /* UIViewController.swift */; };
 		99E07269212160DF005154AA /* UIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99E07268212160DF005154AA /* UIView.swift */; };
 		99F9EE2E2112FA8E005CA7F8 /* PhotoViewController.h in Headers */ = {isa = PBXBuildFile; fileRef = 99F9EE2C2112FA8E005CA7F8 /* PhotoViewController.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -65,6 +66,7 @@
 		5EA7F91FDB0227DEB11735AE /* Pods_Example.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Example.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		77235CD9ECC28152EFAA7CCB /* Pods-PhotoViewController.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-PhotoViewController.release.xcconfig"; path = "Pods/Target Support Files/Pods-PhotoViewController/Pods-PhotoViewController.release.xcconfig"; sourceTree = "<group>"; };
 		999B0F20211D325D00598F1F /* CGSize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CGSize.swift; sourceTree = "<group>"; };
+		99C55791212BDE9D00C50142 /* placeholder.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = placeholder.png; sourceTree = "<group>"; };
 		99E0726621213183005154AA /* UIViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewController.swift; sourceTree = "<group>"; };
 		99E07268212160DF005154AA /* UIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIView.swift; sourceTree = "<group>"; };
 		99F9EE292112FA8E005CA7F8 /* PhotoViewController.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = PhotoViewController.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -127,6 +129,7 @@
 		99F9EE1F2112FA8E005CA7F8 = {
 			isa = PBXGroup;
 			children = (
+				99C55791212BDE9D00C50142 /* placeholder.png */,
 				99F9EE4A2112FAE2005CA7F8 /* Source */,
 				99F9EE2B2112FA8E005CA7F8 /* PhotoViewController */,
 				99F9EE392112FAC0005CA7F8 /* Example */,
@@ -331,6 +334,7 @@
 				99F9EE452112FAC2005CA7F8 /* LaunchScreen.storyboard in Resources */,
 				99F9EE422112FAC2005CA7F8 /* Assets.xcassets in Resources */,
 				99F9EE402112FAC0005CA7F8 /* Main.storyboard in Resources */,
+				99C55792212BDE9D00C50142 /* placeholder.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
