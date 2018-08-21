@@ -716,8 +716,12 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
       scrollView.contentInset = UIEdgeInsets(top: verticalPadding, left: horizontalPadding, bottom: verticalPadding, right: horizontalPadding)
     case .fitWidth(let position):
       scrollView.contentInset = .zero
-      if !zooming, position ~= .center {
-        scrollView.scrollRectToVisible(AVMakeRect(aspectRatio: view.bounds.size, insideRect: imageView.frame), animated: false)
+      if !zooming {
+        scrollView.contentSize = imageView.frame.size
+        if position ~= .center {
+          let rect = AVMakeRect(aspectRatio: view.bounds.size, insideRect: imageView.frame)
+          scrollView.scrollRectToVisible(rect, animated: true)
+        }
       }
     }
   }
