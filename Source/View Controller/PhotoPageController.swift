@@ -150,7 +150,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   // MARK: - ImmersiveMode
 
   open func addImmersiveModeObservers() -> Void {
-    PhotoViewManager.default.notificationCenter.addObserver(self, selector: #selector(handleImmersiveModeDidChangeNotification(_:)), name: NSNotification.Name.PhotoViewControllerImmersiveModeDidChange, object: nil)
+    PhotoViewManager.default.notificationCenter.addObserver(self, selector: #selector(handleImmersiveModeDidChangeNotification(_:)), name: PhotoViewManager.immersiveModeDidChange, object: nil)
   }
 
   @objc func handleImmersiveModeDidChangeNotification(_ note: Notification) -> Void {

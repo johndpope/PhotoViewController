@@ -10,9 +10,7 @@ import Foundation
 import AVFoundation.AVUtilities
 
 public extension Notification.Name {
-  public static var PhotoViewControllerImmersiveModeDidChange: Notification.Name {
-    return Notification.Name(rawValue: "PhotoViewControllerImmersiveModeDidChange")
-  }
+
 }
 
 public enum PhotoViewTapAction {
@@ -38,6 +36,10 @@ public enum PhotoViewContentMode {
 
 open class PhotoViewManager {
 
+  public static var immersiveModeDidChange: Notification.Name {
+    return Notification.Name(rawValue: "PhotoViewManagerImmersiveModeDidChange")
+  }
+
   public var notificationCenter: NotificationCenter
 
   public init(notificationCenter: NotificationCenter = .default) {
@@ -48,7 +50,7 @@ open class PhotoViewManager {
 
   public private(set) var immersiveMode: PhotoImmersiveMode = .normal {
     didSet {
-      notificationCenter.post(name: NSNotification.Name.PhotoViewControllerImmersiveModeDidChange, object: nil)
+      notificationCenter.post(name: PhotoViewManager.immersiveModeDidChange, object: nil)
     }
   }
 
