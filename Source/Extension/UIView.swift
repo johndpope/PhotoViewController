@@ -16,11 +16,7 @@ func __addConstraint<R>(fromView: UIView?, toView: UIView?, getAnchor: (UIView) 
   getAnchor(view1).constraint(equalTo: getAnchor(view2)).isActive = true
 }
 
-#if swift(>=4.2)
-typealias LayoutConstraintAttribute = NSLayoutConstraint.Attribute
-#else
-typealias LayoutConstraintAttribute = NSLayoutAttribute
-#endif
+
 func __addConstraint(fromView: UIView?, toView: UIView?, attribute: LayoutConstraintAttribute) {
   guard let view1 = fromView else { return }
   guard let view2 = toView else { return }

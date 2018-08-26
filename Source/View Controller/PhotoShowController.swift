@@ -10,74 +10,6 @@ import Foundation
 import PhotosUI
 import AVFoundation.AVUtilities
 
-#if swift(>=4.2)
-typealias GestureRecognizerState = UIGestureRecognizer.State
-#else
-typealias GestureRecognizerState = UIGestureRecognizerState
-#endif
-
-// somehow I cannot log state directly
-extension GestureRecognizerState {
-  var name: String {
-    switch self {
-    case .began:
-      return "began"
-    case .possible:
-      return "possible"
-    case .changed:
-      return "changed"
-    case .ended:
-      return "ended"
-    case .cancelled:
-      return "cancelled"
-    case .failed:
-      return "failed"
-    }
-  }
-}
-
-func upsearch<T, U>(from starter: T, maximumSearch: Int, type: U.Type, father: (T?) -> T?) -> U? {
-  var number = 0
-  var _nextFinder: T? = starter
-  while !(_nextFinder is U), number < maximumSearch {
-    _nextFinder = father(_nextFinder)
-    number += 1
-  }
-  return _nextFinder as? U
-}
-
-func drawImage(inSize size: CGSize, opaque: Bool = false, scale: CGFloat = 0, action: ((CGContext?) -> Void)) -> UIImage? {
-  if #available(iOS 10.0, *) {
-    let format = UIGraphicsImageRendererFormat.default()
-    format.opaque = opaque
-    format.scale = scale
-    return UIGraphicsImageRenderer(size: size).image { (context) in
-      action(context.cgContext)
-    }
-  } else {
-    UIGraphicsBeginImageContextWithOptions(size, opaque, scale)
-    action(UIGraphicsGetCurrentContext())
-    let image = UIGraphicsGetImageFromCurrentImageContext()
-    UIGraphicsEndImageContext()
-    return image
-  }
-}
-
-extension CGAffineTransform {
-  func makeScale(to scale: CGFloat, ratate angle: CGFloat = 0) -> CGAffineTransform {
-    let scaleTransform = self.concatenating(CGAffineTransform(scaleX: scale, y: scale))
-    let rotateTransform = scaleTransform.concatenating(CGAffineTransform(rotationAngle: angle))
-    return rotateTransform
-  }
-}
-
-extension Comparable {
-
-  func clamp(_ minimum: Self, _ maximum: Self) -> Self {
-    return min(max(minimum, self), maximum)
-  }
-
-}
 
 open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestureRecognizerDelegate {
 
@@ -108,6 +40,8 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   public private(set) var isZoomingAndRotating: Bool = false
 
   public private(set) var singleTouchInLivePhotoEnabled: Bool = true
+
+  public private(set) var recognizedDismissalDirection: PhotoViewDismissDirection = .bottom
 
   public var embededScrollView: UIScrollView? {
 
@@ -296,6 +230,70 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     rotationGestureRecognizer.rotation = 0
   }
 
+  // MARK: - dismissal draging
+
+  open func isValidDissmissalTranslation(_ translation: CGPoint, for direction: PhotoViewDismissDirection? = nil) -> (valid: Bool, recognizedDirection: PhotoViewDismissDirection?) {
+    let direction = direction ?? PhotoViewManager.default.interactiveDismissDirection
+    if direction == .none {
+      return (false, nil)
+    }
+    let directions: [PhotoViewDismissDirection] = [.left, .right, .top, .bottom]
+    let predicates: [(CGPoint) -> Bool] = [{ $0.x < 0 }, { $0.x > 0 }, { $0.y < 0 }, { $0.y > 0 }]
+    let evaluates = zip(directions, predicates).map { (direction: $0, valid: $1(translation)) }
+    let recognizedDirection: PhotoViewDismissDirection? = evaluates.first(where: { $0.valid })?.direction
+    return (evaluates.first(where: { $0.valid }) != nil, recognizedDirection)
+  }
+
+  open func interactiveDismissalTranslationProportion(forTranslation translation: CGPoint) -> CGFloat {
+    switch recognizedDismissalDirection {
+    case .left:
+      return -translation.x / UIScreen.main.bounds.width
+    case .right:
+      return translation.x / UIScreen.main.bounds.width
+    case .top:
+      return -translation.y / UIScreen.main.bounds.height
+    case .bottom:
+      return translation.y / UIScreen.main.bounds.height
+    default:
+      return 0
+    }
+  }
+
+  open func interactiveDismissalPercentComplete(forTranslation translation: CGPoint) -> CGFloat {
+    return interactiveDismissalTranslationProportion(forTranslation: translation)
+  }
+
+  open func interactiveDismissalShouldBegin(forTranslation translation: CGPoint) -> Bool {
+    let strictValid = isValidDissmissalTranslation(translation, for: recognizedDismissalDirection).valid
+    switch recognizedDismissalDirection {
+    case .left:
+      fallthrough
+    case .right:
+      return strictValid || (translation.x == 0)
+    case .top:
+      fallthrough
+    case .bottom:
+      return strictValid || (translation.y == 0)
+    default:
+      return false
+    }
+  }
+
+  open func interactiveDismissalShouldBeginForScrollView() -> Bool {
+    switch recognizedDismissalDirection {
+    case .left:
+      return scrollView.contentOffset.y >= scrollView.contentSize.width
+    case .right:
+      return scrollView.contentOffset.x <= 0
+    case .top:
+      return scrollView.contentOffset.y >= scrollView.contentSize.height
+    case .bottom:
+      return scrollView.contentOffset.y <= 0
+    default:
+      return false
+    }
+  }
+
   // MARK: - dismissal transform
 
 
@@ -307,7 +305,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
       let moveTransform = scaleTransform.concatenating(CGAffineTransform(translationX: translation.x, y: translation.y))
       return moveTransform
     } else {
-      let scale = (1 - translation.y / UIScreen.main.bounds.height * scalingFator).clamp(0, 1)
+      let scale = (1 - interactiveDismissalTranslationProportion(forTranslation: translation) * scalingFator).clamp(0, 1)
       let scaleTransform = CGAffineTransform.identity.makeScale(to: scale)
       let moveDownTransform = scaleTransform.concatenating(CGAffineTransform(translationX: translation.x, y: translation.y))
       return moveDownTransform
@@ -391,10 +389,10 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     debuglog("Pan state: \(pan.state.name)")
     guard scrollView.reachMinZoomScale else { return }
     let translation = pan.translation(in: pan.view)
-    if translation.y < 0 && dismissalInteractiveController == nil {
+    if !interactiveDismissalShouldBegin(forTranslation: translation) && dismissalInteractiveController == nil {
       return
     }
-    let percentComplete: CGFloat = (translation.y / UIScreen.main.bounds.height).clamp(0, 1)
+    let percentComplete: CGFloat = interactiveDismissalPercentComplete(forTranslation: translation).clamp(0, 1)
 
     switch pan.state {
     case .began:
@@ -486,8 +484,15 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
 
   public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
     if gestureRecognizer == dismissalGestureRecognizer {
+      if PhotoViewManager.default.interactiveDismissDirection == .none {
+        return false
+      }
       let translation =  dismissalGestureRecognizer.translation(in: dismissalGestureRecognizer.view)
-      return translation.y > 0 && !isZoomingAndRotating
+      let tuple = isValidDissmissalTranslation(translation)
+      if tuple.valid {
+        recognizedDismissalDirection = tuple.recognizedDirection!
+      }
+      return tuple.valid && !isZoomingAndRotating
     }
     if gestureRecognizer == rotationGestureRecognizer || gestureRecognizer == pinchGestureRecognizer {
       if !isZoomingAndRotating && dismissalInteractiveController != nil {
@@ -504,7 +509,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     }
     if gestureRecognizer == dismissalGestureRecognizer, otherGestureRecognizer.view is UIScrollView {
       // for contentMode = .fitWidth
-      if scrollView.contentOffset.y <= 0 {
+      if interactiveDismissalShouldBeginForScrollView() {
         return true
       }
     }

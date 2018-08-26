@@ -8,16 +8,6 @@
 
 import UIKit
 
-#if swift(>=4.2)
-public typealias ViewContentMode = UIView.ContentMode
-public typealias ViewAnimationOptions = UIView.AnimationOptions
-public typealias ViewAnimationCurve = UIView.AnimationCurve
-#else
-public typealias ViewContentMode = UIViewContentMode
-public typealias ViewAnimationOptions = UIViewAnimationOptions
-public typealias ViewAnimationCurve = UIViewAnimationCurve
-#endif
-
 public protocol ImageZoomProvider: class {
   var currentImageViewHidden: Bool { set get }
   var currentImageViewFrame: CGRect? { get }

@@ -136,7 +136,7 @@ extension Array {
       subArray.unsafeLoop(indexPath: indexPath.dropFirst(), action)
       array[index] = subArray
     }
-    self = array as! Array<Element>
+    self = array as! [Element]
   }
 
 }

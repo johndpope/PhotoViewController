@@ -8,23 +8,8 @@
 
 import UIKit
 
-@inline(__always)
-func debuglog(_ items: Any...) -> Void {
-  #if DEBUG
-  print(items)
-  #endif
-}
 
 
-#if swift(>=4.2)
-let interPageSpacingKey = UIPageViewController.OptionsKey.interPageSpacing
-public typealias PageViewControllerNavigationOrientation = UIPageViewController.NavigationOrientation
-public typealias PageViewControllerTransitionStyle = UIPageViewController.TransitionStyle
-#else
-let interPageSpacingKey = UIPageViewControllerOptionInterPageSpacingKey
-public typealias PageViewControllerTransitionStyle = UIPageViewControllerTransitionStyle
-public typealias PageViewControllerNavigationOrientation = UIPageViewControllerNavigationOrientation
-#endif
 
 open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPageViewControllerDelegate, UIPageViewControllerDataSource, ImageZoomProvider, ImageZoomForceTouchProvider {
 
@@ -121,6 +106,12 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   open var dismissalInteractiveController: UIViewControllerInteractiveTransitioning? {
     return currentPhotoViewController?.dismissalInteractiveController
   }
+
+  #if swift(>=4.2)
+  let interPageSpacingKey = UIPageViewController.OptionsKey.interPageSpacing
+  #else
+  let interPageSpacingKey = UIPageViewControllerOptionInterPageSpacingKey
+  #endif
 
   private lazy var pageController = UIPageViewController(transitionStyle: PageViewControllerTransitionStyle.scroll, navigationOrientation: navigationOrientation, options: [interPageSpacingKey: NSNumber(value: interPageSpacing)])
 

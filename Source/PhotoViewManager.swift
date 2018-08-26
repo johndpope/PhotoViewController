@@ -6,18 +6,13 @@
 //  Copyright © 2018 Prime. All rights reserved.
 //
 
-import Foundation
+import UIKit
 import AVFoundation.AVUtilities
-
-public extension Notification.Name {
-
-}
 
 public enum PhotoViewTapAction {
   case toggleImmersiveMode
   case dismiss
 }
-
 
 public enum PhotoImmersiveMode {
   case normal
@@ -32,6 +27,25 @@ public enum PhotoViewContentPosition {
 public enum PhotoViewContentMode {
   case fitScreen
   case fitWidth(PhotoViewContentPosition)
+}
+
+public struct PhotoViewDismissDirection: OptionSet {
+
+  public typealias RawValue = Int
+  public let rawValue: RawValue
+  public init(rawValue: RawValue) {
+    self.rawValue = rawValue
+  }
+
+  static let none: PhotoViewDismissDirection = PhotoViewDismissDirection(rawValue: 0)
+
+  static let left: PhotoViewDismissDirection = PhotoViewDismissDirection(rawValue: 1 << 0)
+  static let right: PhotoViewDismissDirection = PhotoViewDismissDirection(rawValue: 1 << 1)
+  static let top: PhotoViewDismissDirection = PhotoViewDismissDirection(rawValue: 1 << 2)
+  static let bottom: PhotoViewDismissDirection = PhotoViewDismissDirection(rawValue: 1 << 3)
+
+  static let all: PhotoViewDismissDirection = [.left, .right, .top, .bottom]
+
 }
 
 open class PhotoViewManager {
@@ -79,6 +93,7 @@ open class PhotoViewManager {
 
   public var interactiveDismissScaleFactor: CGFloat = 0.5
 
+  public var interactiveDismissDirection: PhotoViewDismissDirection = .all
 
   public func forceSetImmersiveMode(_ state: PhotoImmersiveMode) {
     if enabledImmersiveMode.contains(state) {
