@@ -129,9 +129,11 @@ class ViewController: UITableViewController {
     selectedIndexP = indexPath
     PhotoViewManager.default.defaultImmersiveMode = defaultState
     PhotoViewManager.default.viewTapAction = viewTapAction
+    PhotoViewManager.default.interactiveDismissDirection = panDirection
+    PhotoViewManager.default.interactiveDismissScaleFactor = panScale
     let cell = tableView.cellForRow(at: indexPath)!
     PhotoViewManager.default.hintImage = cell.contentView.firstSubview(ofType: UIImageView.self)?.image
-    let customPage = CustomPhotoPageController(modally: modally, startIndex: indexPath, resources: datum)
+    let customPage = CustomPhotoPageController(modally: modally, startIndex: indexPath, resources: datum, navigationOrientation: scrollDirection)
     customPage.page!.loop = pageLoop
     customPage.transitioningDelegate = self
     customPage.modalPresentationStyle = .custom
@@ -235,6 +237,18 @@ extension ViewController {
 
   var dismissCurve: ViewAnimationOptions {
     return ExampleConfigManager.shared.dismissCurve.currentValue as! ViewAnimationOptions
+  }
+
+  var panScale: CGFloat {
+    return ExampleConfigManager.shared.panScale.currentValue as! CGFloat
+  }
+
+  var panDirection: PhotoViewDismissDirection {
+    return ExampleConfigManager.shared.panDirection.currentValue as! PhotoViewDismissDirection
+  }
+
+  var scrollDirection: PageViewControllerNavigationOrientation {
+    return ExampleConfigManager.shared.scrollDirection.currentValue as! PageViewControllerNavigationOrientation
   }
 
   var imageContentMode: ViewContentMode {

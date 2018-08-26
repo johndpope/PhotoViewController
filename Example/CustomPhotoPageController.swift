@@ -57,6 +57,7 @@ class MyPagingController<T: IndexPathSearchable>: PhotoPageController<T> {
   override func photoShow(modally: Bool, resource: MediaResource) -> UIViewController {
     return MyPhotoShowController(isModalTransition: modally, resource: resource)
   }
+
 }
 
 
@@ -76,9 +77,9 @@ class CustomPhotoPageController: UIViewController, ImageZoomForceTouchProvider {
 
   var page: MyPagingController<[MediaResource]>?
   var pageControl: UIPageControl?
-  convenience init(modally: Bool, startIndex: IndexPath, resources: [[MediaResource]]) {
+  convenience init(modally: Bool, startIndex: IndexPath, resources: [[MediaResource]], navigationOrientation: PageViewControllerNavigationOrientation) {
     self.init(nibName: nil, bundle: nil)
-    page = MyPagingController(isModalTransition: modally, startIndexPath: startIndex, resources: resources)
+    page = MyPagingController(isModalTransition: modally, startIndexPath: startIndex, resources: resources, navigationOrientation: navigationOrientation)
   }
 
   override func viewDidLoad() {

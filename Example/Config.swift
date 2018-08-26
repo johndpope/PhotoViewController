@@ -48,6 +48,9 @@ class ExampleConfigManager {
                                            dismissSpringDamping,
                                            showCurve,
                                            dismissCurve,
+                                           scrollDirection,
+                                           panDirection,
+                                           panScale,
                                            viewTap,
                                            defaultState,
                                            iOS10Only,
@@ -56,6 +59,9 @@ class ExampleConfigManager {
   var imageContentMode: ExampleConfigWrapper = ExampleConfigWrapper(name: "fromImageContentMode", availables: [.scaleToFill, .scaleAspectFit, .scaleAspectFill] as [ViewContentMode], availableStrings: ["Fill", "AspectFit", "AspectFill"])
   var pageLoop: ExampleConfigWrapper = ExampleConfigWrapper(name: "pageLoop", availables: [false, true])
   var transitionModally: ExampleConfigWrapper = ExampleConfigWrapper(name: "transitionModally", availables: [false, true])
+  var scrollDirection: ExampleConfigWrapper = ExampleConfigWrapper(name: "scrollDirection", availables: [.horizontal, .vertical] as [PageViewControllerNavigationOrientation], availableStrings: ["horizontal", "vertical"])
+  var panDirection: ExampleConfigWrapper = ExampleConfigWrapper(name: "panDirection", availables: [.bottom, .left, .all, .none] as [PhotoViewDismissDirection], availableStrings: ["bottom", "left", "all", "none"])
+  var panScale: ExampleConfigWrapper = ExampleConfigWrapper(name: "panScale", availables: [0.3, 0.5, 0.9, 1.1] as [CGFloat])
   var showingTimeInterval: ExampleConfigWrapper = ExampleConfigWrapper(name: "showingTimeInterval", availables: [0.5, 1, 2, 3, 0.1, 0.2, 0.3] as [TimeInterval])
   var dimissTimeInterval: ExampleConfigWrapper = ExampleConfigWrapper(name: "dimissTimeInterval", availables: [0.5, 1, 2, 3, 0.1, 0.2, 0.3] as [TimeInterval])
   var showSpringDamping: ExampleConfigWrapper = ExampleConfigWrapper(name: "showSpringDamping", availables: [0.7, 0.6, 0.5, 0.8, 0.9, 1] as [CGFloat])

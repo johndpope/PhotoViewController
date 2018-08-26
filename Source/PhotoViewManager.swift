@@ -37,14 +37,14 @@ public struct PhotoViewDismissDirection: OptionSet {
     self.rawValue = rawValue
   }
 
-  static let none: PhotoViewDismissDirection = PhotoViewDismissDirection(rawValue: 0)
+  public static let none: PhotoViewDismissDirection = PhotoViewDismissDirection(rawValue: 0)
 
-  static let left: PhotoViewDismissDirection = PhotoViewDismissDirection(rawValue: 1 << 0)
-  static let right: PhotoViewDismissDirection = PhotoViewDismissDirection(rawValue: 1 << 1)
-  static let top: PhotoViewDismissDirection = PhotoViewDismissDirection(rawValue: 1 << 2)
-  static let bottom: PhotoViewDismissDirection = PhotoViewDismissDirection(rawValue: 1 << 3)
+  public static let left: PhotoViewDismissDirection = PhotoViewDismissDirection(rawValue: 1 << 0)
+  public static let right: PhotoViewDismissDirection = PhotoViewDismissDirection(rawValue: 1 << 1)
+  public static let top: PhotoViewDismissDirection = PhotoViewDismissDirection(rawValue: 1 << 2)
+  public static let bottom: PhotoViewDismissDirection = PhotoViewDismissDirection(rawValue: 1 << 3)
 
-  static let all: PhotoViewDismissDirection = [.left, .right, .top, .bottom]
+  public static let all: PhotoViewDismissDirection = [.left, .right, .top, .bottom]
 
 }
 

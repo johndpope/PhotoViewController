@@ -240,8 +240,14 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     let directions: [PhotoViewDismissDirection] = [.left, .right, .top, .bottom]
     let predicates: [(CGPoint) -> Bool] = [{ $0.x < 0 }, { $0.x > 0 }, { $0.y < 0 }, { $0.y > 0 }]
     let evaluates = zip(directions, predicates).map { (direction: $0, valid: $1(translation)) }
-    let recognizedDirection: PhotoViewDismissDirection? = evaluates.first(where: { $0.valid })?.direction
-    return (evaluates.first(where: { $0.valid }) != nil, recognizedDirection)
+    let firstMatch = evaluates.first(where: { tuple in
+      if direction.contains(tuple.direction) {
+        return tuple.valid
+      }
+      return false
+    })
+    let recognizedDirection: PhotoViewDismissDirection? = firstMatch?.direction
+    return (firstMatch != nil, recognizedDirection)
   }
 
   open func interactiveDismissalTranslationProportion(forTranslation translation: CGPoint) -> CGFloat {
