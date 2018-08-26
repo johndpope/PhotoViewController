@@ -70,6 +70,7 @@ open class PhotoViewManager {
 
   public var longestPreviewingContentSize: CGSize = CGSize(width: 1, height: 6)
 
+  /// for placeholder or content size, useful for 3d touch
   public var hintImage: UIImage?
 
   public var viewTapAction: PhotoViewTapAction = .toggleImmersiveMode

@@ -16,6 +16,11 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   public var isForceTouching: Bool = false {
     didSet {
       forceTouchDidChange()
+      if isForceTouching {
+        if imageView.image == nil {
+          imageView.image = PhotoViewManager.default.hintImage
+        }
+      }
     }
   }
   public let isModalTransition : Bool

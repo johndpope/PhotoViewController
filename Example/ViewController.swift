@@ -131,8 +131,10 @@ class ViewController: UITableViewController {
     PhotoViewManager.default.viewTapAction = viewTapAction
     PhotoViewManager.default.interactiveDismissDirection = panDirection
     PhotoViewManager.default.interactiveDismissScaleFactor = panScale
-    let cell = tableView.cellForRow(at: indexPath)!
-    PhotoViewManager.default.hintImage = cell.contentView.firstSubview(ofType: UIImageView.self)?.image
+    if previewing {
+      let cell = tableView.cellForRow(at: indexPath)!
+      PhotoViewManager.default.hintImage = cell.contentView.firstSubview(ofType: UIImageView.self)?.image
+    }
     let customPage = CustomPhotoPageController(modally: modally, startIndex: indexPath, resources: datum, navigationOrientation: scrollDirection)
     customPage.page!.loop = pageLoop
     customPage.transitioningDelegate = self
@@ -154,12 +156,12 @@ class ViewController: UITableViewController {
   }
 
   override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-    navigationController?.delegate = self
     tableView.deselectRow(at: indexPath, animated: false)
     let customPage = showController(at: indexPath, previewing: false)!
     if modally {
       navigationController?.present(customPage, animated: true, completion: nil)
     } else {
+      navigationController?.delegate = self
       navigationController?.pushViewController(customPage, animated: true)
     }
   }
@@ -182,6 +184,7 @@ extension ViewController: UIViewControllerPreviewingDelegate {
     if modally {
       navigationController?.present(viewControllerToCommit, animated: true, completion: nil)
     } else {
+      navigationController?.delegate = self
       navigationController?.pushViewController(viewControllerToCommit, animated: true)
     }
   }
@@ -410,24 +413,24 @@ extension ViewController: UIImagePickerControllerDelegate {
   #if swift(>=4.2)
   typealias ImagePickerControllerInfoKey = UIImagePickerController.InfoKey
   var imagePickerControllerMediaType: ImagePickerControllerInfoKey {
-  return .mediaType
+    return .mediaType
   }
   var imagePickerControllerOriginalImage: ImagePickerControllerInfoKey {
-  return .originalImage
+    return .originalImage
   }
   var imagePickerControllerEditedImage: ImagePickerControllerInfoKey {
-  return .editedImage
+    return .editedImage
   }
   var imagePickerControllerReferenceURL: ImagePickerControllerInfoKey {
-  return .referenceURL
+    return .referenceURL
   }
   @available(iOS 9.1, *)
   var imagePickerControllerLivePhoto: ImagePickerControllerInfoKey {
-  return .livePhoto
+    return .livePhoto
   }
   @available(iOS 11.0, *)
   var imagePickerControllerPHAsset: ImagePickerControllerInfoKey {
-  return .phAsset
+    return .phAsset
   }
   #else
   typealias ImagePickerControllerInfoKey = String
