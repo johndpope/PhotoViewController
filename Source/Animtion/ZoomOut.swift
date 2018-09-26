@@ -24,7 +24,9 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
   private var deferredCompletion: Bool = false
   public var prepareAnimation: ((_ imageView: UIImageView) -> Void)?
   public var userAnimation: ((_ isInteractive: Bool, _ isCancelled: Bool, _ imageView: UIImageView) -> Void)?
-  public var transitionDidFinish: (() -> Void)?
+  public var transitionDidFinish: ((Bool) -> Void)?
+  private var transitionIsCompleted: Bool = false
+
 
   // workaround on @available of stored property
   @available(iOS 10.0, *)
@@ -188,6 +190,7 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
         return
       }
       defer {
+        strongself.transitionIsCompleted = !strongContext.transitionWasCancelled
         toSnapshotView.removeFromSuperview()
         fromSnapshotView.removeFromSuperview()
         mockSourceImageView.removeFromSuperview()
@@ -224,8 +227,12 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
           })
         case .perferred:
           if #available(iOS 10.0, *) {
+            strongself.animator?.stopAnimation(true)
             strongself.animator?.addAnimations {
               animtions(false, isCancelled)
+            }
+            strongself.animator?.addCompletion { (postion) in
+              completion()
             }
             strongself.animator?.startAnimation()
           }
@@ -280,7 +287,7 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
   }
 
   deinit {
-    transitionDidFinish?()
+    transitionDidFinish?(transitionIsCompleted)
   }
 
 }
