@@ -352,8 +352,10 @@ extension ViewController {
         imageView.layer.cornerRadius = cancelled ? 0 : cornerRadius
       }
     }
-    t.transitionDidFinish = { [weak self] in
-      self?.navigationController?.delegate = nil
+    t.transitionDidFinish = { [weak self] (completed) in
+      if completed {
+        self?.navigationController?.delegate = nil
+      }
     }
     return t
   }
