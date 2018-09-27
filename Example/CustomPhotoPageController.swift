@@ -54,6 +54,7 @@ class MyPhotoShowController: PhotoShowController {
 
 /// mypage
 class MyPagingController<T: IndexPathSearchable>: PhotoPageController<T> {
+
   override func photoShow(modally: Bool, resource: MediaResource) -> UIViewController {
     return MyPhotoShowController(isModalTransition: modally, resource: resource)
   }
@@ -107,6 +108,7 @@ class CustomPhotoPageController: UIViewController, ImageZoomForceTouchProvider {
     let pageControl = UIPageControl(frame: .zero)
     self.pageControl = pageControl
     view?.addSubview(pageControl)
+    pageControl.backgroundColor = UIColor.clear
     pageControl.pageIndicatorTintColor = UIColor.lightGray
     pageControl.currentPageIndicatorTintColor = UIColor.darkGray
     pageControl.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -128,15 +130,15 @@ class CustomPhotoPageController: UIViewController, ImageZoomForceTouchProvider {
 
   @available(iOS 9.0, *)
   override var previewActionItems: [UIPreviewActionItem] {
-    return [UIPreviewAction(title: "Save to Library", style: .default, handler: { [weak self] (_, controller) in
-      self?.page?.currentImage.map({
+    return [UIPreviewAction(title: "Save to Library", style: .default) { [weak self] (_, controller) in
+      self?.page?.currentImage.map {
         UIImageWriteToSavedPhotosAlbum($0, nil, nil, nil)
-      })
+      }
       controller.dismiss(animated: true, completion: nil)
-    }), UIPreviewAction(title: "Delete", style: .destructive, handler: { [weak self] (_, controller) in
-      self?.page?.removeCurrentResource()
-      controller.dismiss(animated: true, completion: nil)
-    })];
+      }, UIPreviewAction(title: "Delete", style: .destructive) { [weak self] (_, controller) in
+        self?.page?.removeCurrentResource()
+        controller.dismiss(animated: true, completion: nil)
+      }];
   }
 
 }
