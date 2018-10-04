@@ -86,7 +86,7 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
   }
 
   private var interactiveController: ZoomOutAnimatedInteractiveController? {
-    return interactiveTransitioning as? ZoomOutAnimatedInteractiveController
+    return provider.dismissalInteractiveController
   }
 
   public func transitionDuration(using transitionContext: UIViewControllerContextTransitioning?) -> TimeInterval {
@@ -158,14 +158,14 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
     if let interactiveController = interactiveController {
       interactiveController.addObserver(self, forKeyPath: #keyPath(ZoomOutAnimatedInteractiveController.progress), options: [.new], context: nil)
       interactiveController.addObserver(self, forKeyPath: #keyPath(ZoomOutAnimatedInteractiveController.transform), options: [.new], context: nil)
-      interactiveController.observedInteractive = true
+      interactiveController.observerAdded = true
       interactiveController.removeObserverBlock = { [weak interactiveController, weak self] in
         guard let strongself = self else { return }
         guard let strongInteractiveController = interactiveController else { return }
-        if strongInteractiveController.observedInteractive {
+        if strongInteractiveController.observerAdded {
           strongInteractiveController.removeObserver(strongself, forKeyPath: #keyPath(ZoomOutAnimatedInteractiveController.progress))
           strongInteractiveController.removeObserver(strongself, forKeyPath: #keyPath(ZoomOutAnimatedInteractiveController.transform))
-          strongInteractiveController.observedInteractive = false
+          strongInteractiveController.observerAdded = false
           strongInteractiveController.removeObserverBlock = nil
         }
       }
@@ -296,9 +296,9 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
 @objc public class ZoomOutAnimatedInteractiveController: UIPercentDrivenInteractiveTransition {
   @objc dynamic public var progress: CGFloat = 0
   @objc dynamic public var transform: CGAffineTransform = .identity
-  var observedInteractive: Bool = false
   public var continueAnimation: (() -> Void)?
-  var removeObserverBlock: (() -> Void)?
+  internal var observerAdded: Bool = false
+  internal var removeObserverBlock: (() -> Void)?
 
   public override func finish() {
     super.finish()
