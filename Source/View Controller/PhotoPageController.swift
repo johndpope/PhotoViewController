@@ -103,7 +103,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     return currentPhotoViewController?.imageViewFrame
   }
 
-  open var dismissalInteractiveController: UIViewControllerInteractiveTransitioning? {
+  open var dismissalInteractiveController: ZoomOutAnimatedInteractiveController? {
     return currentPhotoViewController?.dismissalInteractiveController
   }
 
