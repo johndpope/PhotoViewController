@@ -124,7 +124,7 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
       toControlSnapshotView.frame = toSnapshotView.frame
     }
 
-    let animtions: () -> Void = { [weak self] in
+    let animations: () -> Void = { [weak self] in
       toSnapshotView.alpha = 1
       toControlSnapshotView?.alpha = 1
       fromSnapshotView.alpha = 0
@@ -145,10 +145,14 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
       strongself.provider.currentImageViewHidden = false
       strongself.animationDidFinish?(!transitionContext.transitionWasCancelled)
     }
+    performDefaultAnimation(using: transitionContext, animations: animations, completion: completion)
+  }
+
+  func performDefaultAnimation(using transitionContext: UIViewControllerContextTransitioning, animations: @escaping () -> Void, completion: @escaping() -> Void) -> Void {
     switch option {
     case let .fallback(springDampingRatio, initialSpringVelocity, options):
       UIView.animate(withDuration: duration, delay: 0, usingSpringWithDamping: springDampingRatio, initialSpringVelocity: initialSpringVelocity, options: options, animations: {
-        animtions()
+        animations()
       }) { (finish) in
         completion()
       }
@@ -156,7 +160,7 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
       if #available(iOS 10.0, *) {
         let animator = block(duration)
         animator.addAnimations {
-          animtions()
+          animations()
         }
         animator.addCompletion { (postion) in
           completion()
