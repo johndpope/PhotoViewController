@@ -13,7 +13,7 @@ public protocol ImageZoomProvider: class {
   var currentImageViewFrame: CGRect? { get }
   var currentImage: UIImage? { get }
   var isModalTransition: Bool { get }
-  var dismissalInteractiveController: UIViewControllerInteractiveTransitioning? { get }
+  var dismissalInteractiveController: ZoomOutAnimatedInteractiveController? { get }
 }
 
 public enum ImageZoomAnimator {
