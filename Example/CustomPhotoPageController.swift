@@ -119,7 +119,7 @@ class CustomPhotoPageController: UIViewController, ImageZoomForceTouchProvider {
       pageControl.heightAnchor.constraint(equalToConstant: 20).isActive = true
       pageControl.widthAnchor.constraint(equalToConstant: 300).isActive = true
     } else {
-      NSLayoutConstraint(item: pageControl, attribute: .bottom, relatedBy: .equal, toItem: bottomLayoutGuide, attribute: .top, multiplier: 1, constant: 0).isActive = true
+      NSLayoutConstraint(item: pageControl, attribute: .bottom, relatedBy: .equal, toItem: bottomLayoutGuide, attribute: .top, multiplier: 1, constant: -20).isActive = true
       NSLayoutConstraint(item: pageControl, attribute: .centerX, relatedBy: .equal, toItem: view, attribute: .centerX, multiplier: 1, constant: 0).isActive = true
       NSLayoutConstraint(item: pageControl, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 20).isActive = true
       NSLayoutConstraint(item: pageControl, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 300).isActive = true

@@ -25,12 +25,13 @@ extension UIViewController {
 
   func snapshotViewExceptPageView(afterScreenUpdates: Bool) -> UIView? {
     if pageControllerView == view {
-      return UIView(frame: view.bounds)
+      return nil
     }
     let snapshotContainerView = UIView(frame: view.bounds)
+    snapshotContainerView.backgroundColor = UIColor.clear
     view.subviews.forEach { (sub) in
       if sub != pageControllerView {
-        if let subSnap = sub.snapshotView(afterScreenUpdates: true) {
+        if let subSnap = sub.snapshotView(afterScreenUpdates: afterScreenUpdates) {
           snapshotContainerView.addSubview(subSnap)
           subSnap.frame = sub.frame
         }

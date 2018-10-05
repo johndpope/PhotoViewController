@@ -148,7 +148,7 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
     containerView.addSubview(mockSourceImageView)
 
     // like a sandwich, top -> bottom: (fromControlSnapshotView, mockSourceImageView, fromSnapshotView)
-    let fromControlSnapshotView = fromVC.snapshotViewExceptPageView(afterScreenUpdates: true)
+    let fromControlSnapshotView = fromVC.snapshotViewExceptPageView(afterScreenUpdates: false)
     if let fromControlSnapshotView = fromControlSnapshotView {
       containerView.addSubview(fromControlSnapshotView)
       fromControlSnapshotView.frame = fromSnapshotView.frame
