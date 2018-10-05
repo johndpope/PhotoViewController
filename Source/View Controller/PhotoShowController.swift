@@ -49,7 +49,6 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   public private(set) var recognizedDismissalDirection: PhotoViewDismissDirection = .bottom
 
   public var embededScrollView: UIScrollView? {
-
     return upsearch(from: view, maximumSearch: 5, type: UIScrollView.self, father: {
       $0?.superview
     })
@@ -482,13 +481,22 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     let isNavigationBarHidden: Bool
     switch state ?? PhotoViewManager.default.immersiveMode {
     case .normal:
-      isStatusBarHidden = false
       isNavigationBarHidden = false
     case .immersive:
-      isStatusBarHidden = true
       isNavigationBarHidden = true
     }
-    navigationController?.setNavigationBarHidden(isNavigationBarHidden, animated: true)
+    let block: () -> Void = { [weak self] in
+      self?.navigationController?.setNavigationBarHidden(isNavigationBarHidden, animated: true)
+      self?.isStatusBarHidden = isNavigationBarHidden
+    }
+    if !isModalTransition, navigationController == nil {
+      DispatchQueue.global().async { [weak self] in
+        while let strongself = self, strongself.navigationController == nil {}
+        DispatchQueue.main.async(execute: block)
+      }
+    } else {
+      block()
+    }
   }
 
   // MARK: - UIGestureRecognizerDelegate
