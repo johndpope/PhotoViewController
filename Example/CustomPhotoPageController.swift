@@ -50,6 +50,16 @@ class MyPhotoShowController: PhotoShowController {
     return false
   }
 
+  override func updateImmersiveUI(_ state: PhotoImmersiveMode?) {
+    super.updateImmersiveUI(state)
+    if resource.type ~= .gif {
+      let color = (state ?? PhotoViewManager.default.immersiveMode) ~= .normal ? UIColor.white : UIColor.black
+      gifView.stopAnimating()
+      gifView.backgroundColor = color
+      gifView.startAnimating()
+    }
+  }
+
 }
 
 /// mypage
