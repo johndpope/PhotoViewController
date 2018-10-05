@@ -18,12 +18,11 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
   let provider: ImageZoomProvider
   let animationWillBegin: (() -> Void)?
   let animationDidFinish: ((Bool) -> Void)?
-  var imageViewTransformBlock: ((CGAffineTransform) -> Void)?
+  var interactiveImageViewTransformBlock: ((CGAffineTransform) -> Void)?
+  var interactivePercentAnimationsBlock: ((CGFloat) -> Void)?
 
-  /// only valid when option is ImageZoomAnimationOption.fallback
-  private var deferredCompletion: Bool = false
   public var prepareAnimation: ((_ imageView: UIImageView) -> Void)?
-  public var userAnimation: ((_ isInteractive: Bool, _ isCancelled: Bool, _ imageView: UIImageView) -> Void)?
+  public var userAnimation: ((_ isInteractive: Bool, _ isCancelled: Bool, _ progress: CGFloat, _ imageView: UIImageView) -> Void)?
   public var transitionDidFinish: ((Bool) -> Void)?
   private var transitionIsCompleted: Bool = false
 
@@ -157,10 +156,10 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
 
     interactiveController?.addProgressObserver(self)
 
-    let animations: (_ interactive: Bool, _ isCancelled: Bool) -> Void = { [weak self] interactive, isCancelled in
-      fromSnapshotView.alpha = isCancelled ? 1 : 0
-      fromControlSnapshotView?.alpha = isCancelled ? 1 : 0
-      self?.userAnimation?(interactive, isCancelled, mockSourceImageView)
+    let animations: (_ interactive: Bool, _ isCancelled: Bool, _ expectedEndingProgress: CGFloat) -> Void = { [weak self] interactive, isCancelled, expectedEndingProgress in
+      fromSnapshotView.alpha = isCancelled ? 1 : (1 - expectedEndingProgress)
+      fromControlSnapshotView?.alpha = isCancelled ? 1 : (1 - expectedEndingProgress)
+      self?.userAnimation?(interactive, isCancelled, (interactive ? expectedEndingProgress : CGFloat(1.0)), mockSourceImageView)
       if !interactive {
         mockSourceImageView.transform = .identity
         mockSourceImageView.frame = isCancelled ? fromImageViewFrame : toImageViewFrame
@@ -172,9 +171,6 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
     let completion: () -> Void = { [weak self, weak transitionContext, weak containerView] in
       guard let strongself = self else { return }
       guard let strongContext = transitionContext else { return }
-      if strongContext.transitionWasCancelled && strongself.deferredCompletion {
-        return
-      }
       defer {
         strongself.transitionIsCompleted = !strongContext.transitionWasCancelled
         toSnapshotView.removeFromSuperview()
@@ -193,86 +189,62 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
         containerView?.superview?.addSubview(toVC.view)
       }
     }
-    imageViewTransformBlock = { [weak mockSourceImageView] in
-      mockSourceImageView?.transform = $0
-    }
-    if let interactiveController = interactiveController {
-      interactiveController.continueAnimation = { [weak self, weak transitionContext, weak interactiveController] in
-        self?.continueAnimations(using: transitionContext, interactiveController: interactiveController, animations: animations, completion: completion)
+
+    if transitionContext.isInteractive {
+      interactiveImageViewTransformBlock = { [weak mockSourceImageView] in
+        mockSourceImageView?.transform = $0
       }
+      interactivePercentAnimationsBlock = { percent in
+        animations(true, false, percent)
+      }
+      interactiveController?.continueAnimation = { [weak self, weak transitionContext] in
+        self?.continueAnimations(using: transitionContext, animations: animations, completion: completion)
+      }
+    } else {
+      performDefaultAnimations(duration: duration, isCancelled: false, animations: animations, completion: completion)
     }
-    performDefaultAnimation(using: transitionContext, animations: animations, completion: completion)
   }
 
-  func performDefaultAnimation(using transitionContext: UIViewControllerContextTransitioning, animations: @escaping (_ interactive: Bool, _ isCancelled: Bool) -> Void, completion: @escaping() -> Void) -> Void {
+  func performDefaultAnimations(duration: TimeInterval, isCancelled: Bool, animations: @escaping (_ interactive: Bool, _ isCancelled: Bool, _ expectedEndingProgress: CGFloat) -> Void, completion: @escaping() -> Void) -> Void {
     switch option {
     case let .fallback(springDampingRatio, initialSpringVelocity, options):
-      UIView.animate(withDuration: duration, delay: 0, usingSpringWithDamping: springDampingRatio, initialSpringVelocity: initialSpringVelocity, options: options, animations: { [weak transitionContext] in
-        guard let strongContext = transitionContext else { return }
-        animations(strongContext.isInteractive, strongContext.transitionWasCancelled)
+      UIView.animate(withDuration: duration, delay: 0, usingSpringWithDamping: springDampingRatio, initialSpringVelocity: initialSpringVelocity, options: options, animations: {
+        animations(false, isCancelled, 1)
       }) { (finish) in
         completion()
       }
     case .perferred(let block):
       if #available(iOS 10.0, *) {
         animator = block(duration)
-        animator?.addAnimations {  [weak transitionContext] in
-          guard let strongContext = transitionContext else { return }
-          animations(strongContext.isInteractive, strongContext.transitionWasCancelled)
+        animator?.addAnimations {
+          animations(false, isCancelled, 1)
         }
         animator?.addCompletion { (postion) in
           completion()
         }
         animator?.startAnimation()
       } else {
-        fatalError("never happen")
+        fatalError()
       }
     }
   }
 
-  func continueAnimations(using transitionContext: UIViewControllerContextTransitioning?, interactiveController: ZoomOutAnimatedInteractiveController?, animations: @escaping (_ interactive: Bool, _ isCancelled: Bool) -> Void, completion: @escaping() -> Void) -> Void {
+  func continueAnimations(using transitionContext: UIViewControllerContextTransitioning?, animations: @escaping (_ interactive: Bool, _ isCancelled: Bool, _ expectedEndingProgress: CGFloat) -> Void, completion: @escaping() -> Void) -> Void {
     guard let strongContext = transitionContext else { return }
     guard let strongInteractiveController = interactiveController else { return }
     let isCancelled = strongContext.transitionWasCancelled
-    switch option {
-    case let .fallback(springDampingRatio, initialSpringVelocity, options):
-      deferredCompletion = true
-      UIView.animate(withDuration: duration * Double(1 - strongInteractiveController.progress), delay: 0, usingSpringWithDamping: springDampingRatio, initialSpringVelocity: initialSpringVelocity, options: [options, .beginFromCurrentState], animations: {
-        animations(false, isCancelled)
-      }, completion: { [weak self] (finish) in
-        self?.deferredCompletion = false
-        completion()
-      })
-    case .perferred:
-      if #available(iOS 10.0, *) {
-        animator?.stopAnimation(true)
-        animator?.addAnimations {
-          animations(false, isCancelled)
-        }
-        animator?.addCompletion { (postion) in
-          completion()
-        }
-        animator?.startAnimation()
-      }
-    }
+    let duration = self.duration * Double(1 - strongInteractiveController.progress)
+    performDefaultAnimations(duration: duration, isCancelled: isCancelled, animations: animations, completion: completion)
   }
 
   public override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
     if keyPath == #keyPath(ZoomOutAnimatedInteractiveController.progress) {
-      switch option {
-      case .perferred:
-        if #available(iOS 10.0, *) {
-          animator?.pauseAnimation()
-          if let interactiveController = interactiveController {
-            animator?.fractionComplete = interactiveController.progress
-          }
-        }
-      default:
-        break
+      if let interactiveController = interactiveController {
+        interactivePercentAnimationsBlock?(interactiveController.progress)
       }
     } else if keyPath == #keyPath(ZoomOutAnimatedInteractiveController.transform){
       if let change = change, let trans = change[NSKeyValueChangeKey.newKey] as? CGAffineTransform {
-        imageViewTransformBlock?(trans)
+        interactiveImageViewTransformBlock?(trans)
       }
     } else {
       super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)

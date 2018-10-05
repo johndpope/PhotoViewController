@@ -132,6 +132,7 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
       mockSourceImageView.contentMode = .scaleAspectFit
       self?.userAnimation?(transitionContext.isInteractive, mockSourceImageView)
     }
+
     let completion: () -> Void = { [weak self] in
       defer {
         fromSnapshotView.removeFromSuperview()
@@ -145,10 +146,10 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
       strongself.provider.currentImageViewHidden = false
       strongself.animationDidFinish?(!transitionContext.transitionWasCancelled)
     }
-    performDefaultAnimation(using: transitionContext, animations: animations, completion: completion)
+    performDefaultAnimations(animations, completion: completion)
   }
 
-  func performDefaultAnimation(using transitionContext: UIViewControllerContextTransitioning, animations: @escaping () -> Void, completion: @escaping() -> Void) -> Void {
+  func performDefaultAnimations(_ animations: @escaping () -> Void, completion: @escaping() -> Void) -> Void {
     switch option {
     case let .fallback(springDampingRatio, initialSpringVelocity, options):
       UIView.animate(withDuration: duration, delay: 0, usingSpringWithDamping: springDampingRatio, initialSpringVelocity: initialSpringVelocity, options: options, animations: {
@@ -167,7 +168,7 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
         }
         animator.startAnimation()
       } else {
-        fatalError("never happens")
+        fatalError()
       }
     }
   }

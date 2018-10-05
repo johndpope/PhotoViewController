@@ -347,7 +347,7 @@ extension ViewController {
       imageView.clipsToBounds = true
       imageView.layer.cornerRadius = 0
     }
-    t.userAnimation = { interactive, cancelled, imageView in
+    t.userAnimation = { interactive, cancelled, progress, imageView in
       if !interactive {
         imageView.layer.cornerRadius = cancelled ? 0 : cornerRadius
       }
