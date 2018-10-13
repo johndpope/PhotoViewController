@@ -92,34 +92,13 @@ extension Array: IndexPathSearchable where Element: IndexPathSearchable {
     return allIndexPaths(where: predicate, matchFirst: true).first
   }
 
-  func getLoop(indexPath: IndexPath, _ action: (([Any], Int) -> Void)) -> Void {
-    var array: [Any] = self
-    indexPath.forEach { (index) in
-      if array is [MediaResource] {
-        action(array, index)
-      } else if let subArray = array[index] as? [Any] {
-        array = subArray
-      }
-    }
-  }
-
   @discardableResult
   public mutating func removeItemAt(indexPath: IndexPath) -> MediaResource {
-    var ret: Any?
-    unsafeLoop(indexPath: indexPath) { (typeSubArray, index) in
-      ret = typeSubArray.remove(at: index)
-    }
-    return ret as! MediaResource
+    return getResource(at: indexPath) { (array, index) in array.remove(at: index) }
   }
 
   public subscript(resource indexPath: IndexPath) -> MediaResource {
-    get {
-      var ret: Any?
-      getLoop(indexPath: indexPath) { (typeSubArray, index) in
-        ret = typeSubArray[index]
-      }
-      return ret as! MediaResource
-    }
+    mutating get { return getResource(at: indexPath) }
   }
 }
 
@@ -137,6 +116,15 @@ extension Array {
       array[index] = subArray
     }
     self = array as! [Element]
+  }
+
+  mutating func getResource(at indexPath: IndexPath, _ action: ((inout [Any], Int) -> Void)? = nil) -> MediaResource {
+    var media: Any?
+    unsafeLoop(indexPath: indexPath) { (array, index) in
+      media = array[index]
+      action?(&array, index)
+    }
+    return media as! MediaResource
   }
 
 }
