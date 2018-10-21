@@ -30,30 +30,15 @@ extension Array where Element: Equatable {
         forward ? $0 + 1 : $0 - 1
       }
     }
-    let allElements = self
     #if swift(>=4.2)
-    let flatIndex = allElements.firstIndex(of: element)
+    let flatIndex = firstIndex(of: element)
     #else
-    let flatIndex = allElements.index(of: element)
+    let flatIndex = index(of: element)
     #endif
-    if let flatIndex = flatIndex {
-      var nextFlatIndex: Int?
-      let destinationFlatIndex: Int
-      if forward {
-        destinationFlatIndex = flatIndex + 1
-      } else {
-        destinationFlatIndex = flatIndex - 1
-      }
-      if loop {
-        nextFlatIndex = (destinationFlatIndex + count) % count
-      } else if allElements.indices.contains(destinationFlatIndex) {
-        nextFlatIndex = destinationFlatIndex
-      }
-      if let nextFlatIndex = nextFlatIndex {
-        return allElements[nextFlatIndex]
-      }
-    }
-    return nil
+    guard let flatIndexFound = flatIndex else { return nil }
+    let destinationFlatIndex: Int = incrementIndex(forward: forward)(flatIndexFound)
+    let nextFlatIndex: Int = loop ? ((destinationFlatIndex + count) % count) : destinationFlatIndex
+    return indices.contains(nextFlatIndex) ? self[nextFlatIndex] : nil
   }
 }
 
