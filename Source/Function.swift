@@ -8,7 +8,6 @@
 
 import UIKit
 
-
 func upsearch<T, U>(from starter: T, maximumSearch: Int, type: U.Type, father: (T?) -> T?) -> U? {
   var number = 0
   var _nextFinder: T? = starter
@@ -38,8 +37,8 @@ func drawImage(inSize size: CGSize, opaque: Bool = false, scale: CGFloat = 0, ac
 
 
 @inline(__always)
-func debuglog(_ items: Any...) -> Void {
+func debuglog(file: String = #file, function: String = #function, _ item: String) -> Void {
   #if DEBUG
-  print(items)
+  print("\(file.components(separatedBy: "/").last!) \(function) \(item)")
   #endif
 }

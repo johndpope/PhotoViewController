@@ -228,7 +228,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
 
   open func finishZoomingAndRotating(_ completed: Bool) -> Void {
     guard isZoomingAndRotating else { return }
-    debuglog(#function)
+    debuglog("")
     isZoomingAndRotating = false
     pinchGestureRecognizer.scale = 1
     rotationGestureRecognizer.rotation = 0
@@ -337,7 +337,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
 
   open func beginInteractiveDismissalTransition() -> Void {
     guard dismissalInteractiveController == nil else { return }
-    debuglog(#function)
+    debuglog("")
     scrollView.isUserInteractionEnabled = false
     scrollView.pinchGestureRecognizer?.isEnabled = false
     embededScrollView?.isScrollEnabled = false
@@ -346,14 +346,14 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   }
 
   open func changeInteractionProgress(_ percentComplete: CGFloat) -> Void {
-    debuglog(#function)
+    debuglog("")
     dismissalInteractiveController?.update(percentComplete)
     dismissalInteractiveController?.progress = percentComplete
   }
 
   open func finishInteractiveTransition(_ complete: Bool) -> Void {
     guard dismissalInteractiveController != nil else { return }
-    debuglog(#function)
+    debuglog("")
     if complete {
       dismissalInteractiveController?.finish()
     } else {
@@ -477,7 +477,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   // MARK: - ImmersiveUI
 
   open func updateImmersiveUI(_ state: PhotoImmersiveMode? = nil) -> Void {
-    debuglog(#function)
+    debuglog("")
     let isNavigationBarHidden: Bool
     switch state ?? PhotoViewManager.default.immersiveMode {
     case .normal:
