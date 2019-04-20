@@ -13,10 +13,10 @@ import UIKit
 extension UIViewController {
 
   var pageControllerView: UIView? {
-    if view.next is ImageZoomProvider {
+    if view.next is LargePhotoViewProvider {
       return view
     }
-    return view.subviews.first(where: { $0.next is ImageZoomProvider })
+    return view.subviews.first(where: { $0.next is LargePhotoViewProvider })
   }
 
   func snapshotViewOnlyPageView(afterScreenUpdates: Bool) -> UIView? {

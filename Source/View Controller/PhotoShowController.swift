@@ -10,7 +10,6 @@ import Foundation
 import PhotosUI
 import AVFoundation.AVUtilities
 
-
 open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestureRecognizerDelegate {
 
   public var isForceTouching: Bool = false {
@@ -23,6 +22,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
       }
     }
   }
+  
   public let isModalTransition : Bool
   public let contentView: UIView
   public private(set) var isStatusBarHidden: Bool = false {
@@ -872,6 +872,5 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     orientationObserver.map{ NotificationCenter.default.removeObserver($0) }
     PhotoViewManager.default.notificationCenter.removeObserver(self)
   }
-
 
 }

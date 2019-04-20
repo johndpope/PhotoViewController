@@ -9,10 +9,10 @@
 import UIKit
 
 public extension CGSize {
-  public var isValid: Bool {
+  var isValid: Bool {
     return width > 0 && height > 0
   }
-  public var aspectRatio: CGFloat {
+  var aspectRatio: CGFloat {
     return height / width 
   }
 }

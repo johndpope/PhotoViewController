@@ -137,7 +137,7 @@ class ViewController: UITableViewController {
     }
     let customPage = CustomPhotoPageController(modally: modally, startIndex: indexPath, resources: datum, navigationOrientation: scrollDirection)
     customPage.page!.loop = pageLoop
-    customPage.transitioningDelegate = self
+    customPage.transitioningDelegate = transitionProvider
     customPage.modalPresentationStyle = .custom
     customPage.page!.didScrollToPageHandler = { [weak customPage, weak self] idxPath in
       guard let strongself = self else { return }
@@ -161,10 +161,12 @@ class ViewController: UITableViewController {
     if modally {
       navigationController?.present(customPage, animated: true, completion: nil)
     } else {
-      navigationController?.delegate = self
+      navigationController?.delegate = transitionProvider
       navigationController?.pushViewController(customPage, animated: true)
     }
   }
+
+  lazy var transitionProvider = PhotoZoomInOutTransitionProvider(delegate: self)
 
 }
 
@@ -184,7 +186,7 @@ extension ViewController: UIViewControllerPreviewingDelegate {
     if modally {
       navigationController?.present(viewControllerToCommit, animated: true, completion: nil)
     } else {
-      navigationController?.delegate = self
+      navigationController?.delegate = transitionProvider
       navigationController?.pushViewController(viewControllerToCommit, animated: true)
     }
   }
@@ -300,7 +302,7 @@ extension ViewController {
 // MARK: - custom transition
 extension ViewController {
 
-  func transitionTo(showing viewController: UIViewController) -> UIViewControllerAnimatedTransitioning? {
+  func photoZoomInTransition(incoming viewController: UIViewController) -> UIViewControllerAnimatedTransitioning? {
     guard let selectedIndexP = selectedIndexP else { return nil }
     guard let cell = tableView.cellForRow(at: selectedIndexP) else { return nil }
     guard let imageView = cell.contentView.firstSubview(ofType: UIImageView.self) else { return nil }
@@ -309,7 +311,8 @@ extension ViewController {
 
     let t = ZoomInAnimatedTransitioning(duration: showingInterval,
                                        option: animationOption(forShowing: true),
-                                       animator: ImageZoomAnimator.showFromImageView(imageView, image: image, provider: viewController.page!),
+                                       provider: PhotoZoomInProvider(source: SmallPhotoViewProvider(imageView: imageView, image: image),
+                                                                     destionation: viewController.page!),
                                        animationWillBegin: {
                                         imageView.isHidden = true },
                                        animationDidFinish: { _ in
@@ -326,7 +329,7 @@ extension ViewController {
     return t
   }
 
-  func transitionFrom(dismissed viewController: UIViewController) -> UIViewControllerAnimatedTransitioning? {
+  func photoZoomOutTransition(outgoing viewController: UIViewController) -> UIViewControllerAnimatedTransitioning? {
     guard let viewController = viewController as? CustomPhotoPageController else { return nil }
     let selectedIndexP = viewController.page!.userCurrentIndexPath
     guard tableView.numberOfSections > selectedIndexP.section && tableView.numberOfRows(inSection: selectedIndexP.section) > selectedIndexP.row  else {
@@ -337,11 +340,12 @@ extension ViewController {
     guard let imageView = cell.contentView.firstSubview(ofType: UIImageView.self) else { return nil }
 
     let t = ZoomOutAnimatedTransitioning(duration: dismissInterval,
-                                        option: animationOption(forShowing: false),
-                                        animator: ImageZoomAnimator.dismissToImageView(imageView, provider: viewController.page!),
-                                        animationWillBegin: {
+                                         option: animationOption(forShowing: false),
+                                         provider: PhotoZoomOutProvider(source: viewController.page!,
+                                                                        destionation: SmallPhotoViewProvider(imageView: imageView, image: nil)),
+                                         animationWillBegin: {
                                           imageView.isHidden = true },
-                                        animationDidFinish: { _ in
+                                         animationDidFinish: { _ in
                                           imageView.isHidden = false })
     t.prepareAnimation = { imageView in
       imageView.clipsToBounds = true
@@ -362,55 +366,10 @@ extension ViewController {
 
 }
 
-
-// MARK: - present modal
-extension ViewController: UIViewControllerTransitioningDelegate {
-
-  func animationController(forPresented presented: UIViewController, presenting: UIViewController, source: UIViewController) -> UIViewControllerAnimatedTransitioning? {
-    return transitionTo(showing: presented)
-  }
-
-  func animationController(forDismissed dismissed: UIViewController) -> UIViewControllerAnimatedTransitioning? {
-    return transitionFrom(dismissed:dismissed)
-  }
-
-  func interactionControllerForDismissal(using animator: UIViewControllerAnimatedTransitioning) -> UIViewControllerInteractiveTransitioning? {
-    return (animator as? ZoomOutAnimatedTransitioning)?.interactiveTransitioning
-  }
-
-}
-
-
-// MARK: - navigation push
-extension ViewController: UINavigationControllerDelegate {
-
-  #if swift(>=4.2)
-  typealias NavigationControllerOperation = UINavigationController.Operation
-  #else
-  typealias NavigationControllerOperation = UINavigationControllerOperation
-  #endif
-
-  func navigationController(_ navigationController: UINavigationController, animationControllerFor operation: NavigationControllerOperation, from fromVC: UIViewController, to toVC: UIViewController) -> UIViewControllerAnimatedTransitioning? {
-    switch operation {
-    case .push:
-      return transitionTo(showing: toVC)
-    case .pop:
-      return transitionFrom(dismissed: fromVC)
-    case .none:
-      return nil
-    }
-  }
-
-  func navigationController(_ navigationController: UINavigationController, interactionControllerFor animationController: UIViewControllerAnimatedTransitioning) -> UIViewControllerInteractiveTransitioning? {
-    return (animationController as? ZoomOutAnimatedTransitioning)?.interactiveTransitioning
-  }
-
-}
-
-
+extension ViewController: PhotoZoomInOutTransitionProviderDelegate {}
 
 // MARK: - pick photo
-extension ViewController: UIImagePickerControllerDelegate {
+extension ViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
 
   #if swift(>=4.2)
   typealias ImagePickerControllerInfoKey = UIImagePickerController.InfoKey

@@ -8,10 +8,7 @@
 
 import UIKit
 
-
-
-
-open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPageViewControllerDelegate, UIPageViewControllerDataSource, ImageZoomProvider, ImageZoomForceTouchProvider {
+open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPageViewControllerDelegate, UIPageViewControllerDataSource, LargePhotoViewProvider, ImageZoomForceTouchProvider {
 
   public var isForceTouching: Bool = false {
     didSet {
@@ -327,3 +324,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   }
 
 }
+
+open class PhotoPage1DController: PhotoPageController<MediaResource> {}
+
+open class PhotoPage2DController: PhotoPageController<[MediaResource]> {}

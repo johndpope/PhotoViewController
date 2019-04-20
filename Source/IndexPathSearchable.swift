@@ -113,27 +113,3 @@ extension Array {
   }
 
 }
-
-
-//func TESTAllIndexPaths() -> Void {
-//  var tests: [[[MediaResource]]] = []
-//  for i in 0..<10 {
-//    tests.append([])
-//    for j in 0..<10 {
-//      tests[i].append([])
-//      for _ in 0..<10 {
-//        tests[i][j].append(MediaResource(setImageBlock: { _ in }))
-//      }
-//    }
-//  }
-//
-//  let k = MediaResource(identifier: "10", retrieving: { _ in })
-//
-//  tests[2][5][1] = k
-//  tests[3][8][0] = k
-//  tests[4][4][5] = k
-//  tests[6][7][9] = k
-//
-//  print(tests.firstIndexPath(where: { $0.identifier == "10" }) as Any)
-//  print(tests.allIndexPaths(where: { $0.identifier == "10" }, matchFirst: true))
-//}

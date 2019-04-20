@@ -137,7 +137,6 @@ class CustomPhotoPageController: UIViewController, ImageZoomForceTouchProvider {
     }
   }
 
-
   @available(iOS 9.0, *)
   override var previewActionItems: [UIPreviewActionItem] {
     return [UIPreviewAction(title: "Save to Library", style: .default) { [weak self] (_, controller) in

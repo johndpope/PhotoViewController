@@ -18,6 +18,7 @@
 		99C55792212BDE9D00C50142 /* placeholder.png in Resources */ = {isa = PBXBuildFile; fileRef = 99C55791212BDE9D00C50142 /* placeholder.png */; };
 		99E0726721213183005154AA /* UIViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99E0726621213183005154AA /* UIViewController.swift */; };
 		99E07269212160DF005154AA /* UIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99E07268212160DF005154AA /* UIView.swift */; };
+		99F78B9F226ACB3800C3F227 /* TransitionDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F78B9D226AC78700C3F227 /* TransitionDelegate.swift */; };
 		99F9EE2E2112FA8E005CA7F8 /* PhotoViewController.h in Headers */ = {isa = PBXBuildFile; fileRef = 99F9EE2C2112FA8E005CA7F8 /* PhotoViewController.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		99F9EE3B2112FAC0005CA7F8 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE3A2112FAC0005CA7F8 /* AppDelegate.swift */; };
 		99F9EE402112FAC0005CA7F8 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 99F9EE3E2112FAC0005CA7F8 /* Main.storyboard */; };
@@ -29,7 +30,7 @@
 		99F9EE532112FC00005CA7F8 /* PhotoShowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE522112FC00005CA7F8 /* PhotoShowController.swift */; };
 		99F9EE5921143E50005CA7F8 /* ZoomIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE5821143E50005CA7F8 /* ZoomIn.swift */; };
 		99F9EE5C2117DECE005CA7F8 /* ZoomOut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE5B2117DECE005CA7F8 /* ZoomOut.swift */; };
-		99F9EE5E2117DEEB005CA7F8 /* Animator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE5D2117DEEB005CA7F8 /* Animator.swift */; };
+		99F9EE5E2117DEEB005CA7F8 /* Provider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE5D2117DEEB005CA7F8 /* Provider.swift */; };
 		99F9EE612117F488005CA7F8 /* PhotoPageController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE602117F488005CA7F8 /* PhotoPageController.swift */; };
 		99F9EE632117F4BC005CA7F8 /* PhotoViewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE622117F4BC005CA7F8 /* PhotoViewManager.swift */; };
 		99F9EE662117F51D005CA7F8 /* UIScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE652117F51D005CA7F8 /* UIScrollView.swift */; };
@@ -79,6 +80,7 @@
 		99C55791212BDE9D00C50142 /* placeholder.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = placeholder.png; sourceTree = "<group>"; };
 		99E0726621213183005154AA /* UIViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewController.swift; sourceTree = "<group>"; };
 		99E07268212160DF005154AA /* UIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIView.swift; sourceTree = "<group>"; };
+		99F78B9D226AC78700C3F227 /* TransitionDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransitionDelegate.swift; sourceTree = "<group>"; };
 		99F9EE292112FA8E005CA7F8 /* PhotoViewController.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = PhotoViewController.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		99F9EE2C2112FA8E005CA7F8 /* PhotoViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PhotoViewController.h; sourceTree = "<group>"; };
 		99F9EE2D2112FA8E005CA7F8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -90,10 +92,10 @@
 		99F9EE442112FAC2005CA7F8 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		99F9EE462112FAC2005CA7F8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		99F9EE502112FB46005CA7F8 /* MediaResource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaResource.swift; sourceTree = "<group>"; };
-		99F9EE522112FC00005CA7F8 /* PhotoShowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoShowController.swift; sourceTree = "<group>"; };
+		99F9EE522112FC00005CA7F8 /* PhotoShowController.swift */ = {isa = PBXFileReference; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = PhotoShowController.swift; sourceTree = "<group>"; tabWidth = 2; };
 		99F9EE5821143E50005CA7F8 /* ZoomIn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomIn.swift; sourceTree = "<group>"; };
 		99F9EE5B2117DECE005CA7F8 /* ZoomOut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomOut.swift; sourceTree = "<group>"; };
-		99F9EE5D2117DEEB005CA7F8 /* Animator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Animator.swift; sourceTree = "<group>"; };
+		99F9EE5D2117DEEB005CA7F8 /* Provider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Provider.swift; sourceTree = "<group>"; };
 		99F9EE602117F488005CA7F8 /* PhotoPageController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPageController.swift; sourceTree = "<group>"; };
 		99F9EE622117F4BC005CA7F8 /* PhotoViewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoViewManager.swift; sourceTree = "<group>"; };
 		99F9EE652117F51D005CA7F8 /* UIScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIScrollView.swift; sourceTree = "<group>"; };
@@ -139,7 +141,6 @@
 		99F9EE1F2112FA8E005CA7F8 = {
 			isa = PBXGroup;
 			children = (
-				99C55791212BDE9D00C50142 /* placeholder.png */,
 				99F9EE4A2112FAE2005CA7F8 /* Source */,
 				99F9EE2B2112FA8E005CA7F8 /* PhotoViewController */,
 				99F9EE392112FAC0005CA7F8 /* Example */,
@@ -170,6 +171,7 @@
 		99F9EE392112FAC0005CA7F8 /* Example */ = {
 			isa = PBXGroup;
 			children = (
+				99C55791212BDE9D00C50142 /* placeholder.png */,
 				99F9EE3A2112FAC0005CA7F8 /* AppDelegate.swift */,
 				99F9EE3C2112FAC0005CA7F8 /* ViewController.swift */,
 				99F9EE6F2119B024005CA7F8 /* CustomPhotoPageController.swift */,
@@ -201,7 +203,8 @@
 		99F9EE5A2117DEB3005CA7F8 /* Animtion */ = {
 			isa = PBXGroup;
 			children = (
-				99F9EE5D2117DEEB005CA7F8 /* Animator.swift */,
+				99F78B9D226AC78700C3F227 /* TransitionDelegate.swift */,
+				99F9EE5D2117DEEB005CA7F8 /* Provider.swift */,
 				99F9EE5821143E50005CA7F8 /* ZoomIn.swift */,
 				99F9EE5B2117DECE005CA7F8 /* ZoomOut.swift */,
 			);
@@ -453,9 +456,10 @@
 			files = (
 				993323492132402700F269D1 /* Comparable.swift in Sources */,
 				9933234F213240B600F269D1 /* CGAffineTransform.swift in Sources */,
-				99F9EE5E2117DEEB005CA7F8 /* Animator.swift in Sources */,
+				99F9EE5E2117DEEB005CA7F8 /* Provider.swift in Sources */,
 				99F9EE612117F488005CA7F8 /* PhotoPageController.swift in Sources */,
 				999B0F21211D325D00598F1F /* CGSize.swift in Sources */,
+				99F78B9F226ACB3800C3F227 /* TransitionDelegate.swift in Sources */,
 				99E0726721213183005154AA /* UIViewController.swift in Sources */,
 				99E07269212160DF005154AA /* UIView.swift in Sources */,
 				99F9EE512112FB46005CA7F8 /* MediaResource.swift in Sources */,
@@ -572,6 +576,7 @@
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};
@@ -629,6 +634,7 @@
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
 				VALIDATE_PRODUCT = YES;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
@@ -643,7 +649,7 @@
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				DEFINES_MODULE = YES;
-				DEVELOPMENT_TEAM = 6HC4YDL8W4;
+				DEVELOPMENT_TEAM = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
@@ -658,7 +664,6 @@
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -671,7 +676,7 @@
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				DEFINES_MODULE = YES;
-				DEVELOPMENT_TEAM = 6HC4YDL8W4;
+				DEVELOPMENT_TEAM = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
@@ -685,7 +690,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.PhotoViewController;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
-				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -697,15 +701,14 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 6HC4YDL8W4;
+				DEVELOPMENT_TEAM = 928JGAQ938;
 				INFOPLIST_FILE = Example/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.PhotoViewController.Example;
+				PRODUCT_BUNDLE_IDENTIFIER = com.PhotoViewController.Example;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -717,15 +720,14 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 6HC4YDL8W4;
+				DEVELOPMENT_TEAM = 928JGAQ938;
 				INFOPLIST_FILE = Example/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.PhotoViewController.Example;
+				PRODUCT_BUNDLE_IDENTIFIER = com.PhotoViewController.Example;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;

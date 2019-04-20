@@ -9,13 +9,13 @@
 import UIKit
 
 public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTransitioning {
+
   let duration: TimeInterval
   let option: ImageZoomAnimationOption
   let image: UIImage?
-  var toImageViewFrame: CGRect?
-  private var toImageView: UIImageView?
+  let toImageViewFrame: CGRect?
   let toImageViewContentMode: ViewContentMode
-  let provider: ImageZoomProvider
+  let provider: LargePhotoViewProvider
   let animationWillBegin: (() -> Void)?
   let animationDidFinish: ((Bool) -> Void)?
   var interactiveImageViewTransformBlock: ((CGAffineTransform) -> Void)?
@@ -42,33 +42,23 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
 
   public init(duration: TimeInterval,
               option: ImageZoomAnimationOption,
-              animator: ImageZoomAnimator,
+              provider: PhotoZoomOutProvider,
               animationWillBegin: (() -> Void)?,
               animationDidFinish: ((Bool) -> Void)?) {
     self.duration = duration
     self.option = option
     self.animationWillBegin = animationWillBegin
     self.animationDidFinish = animationDidFinish
-    switch animator {
-    case let .dismissToImageView(toImageView, provider):
-      self.image = provider.currentImage
-      self.toImageView = toImageView
-      self.toImageViewContentMode = toImageView.contentMode
-      self.provider = provider
-    case let .dismissToImageViewFrame(toImageViewFrame, toImageViewContentMode, provider):
-      self.image = provider.currentImage
-      self.toImageViewFrame = toImageViewFrame
-      self.toImageViewContentMode = toImageViewContentMode
-      self.provider = provider
-    default:
-      fatalError("wrong animator")
-    }
+    self.image = provider.source.currentImage
+    self.toImageViewFrame = provider.destionation.frame
+    self.toImageViewContentMode = provider.destionation.contentMode
+    self.provider = provider.source
   }
 
   public convenience init(duration: TimeInterval,
-                   animator: ImageZoomAnimator,
-                   animationWillBegin: (() -> Void)? = nil,
-                   animationDidFinish: ((Bool) -> Void)? = nil) {
+                          provider: PhotoZoomOutProvider,
+                          animationWillBegin: (() -> Void)? = nil,
+                          animationDidFinish: ((Bool) -> Void)? = nil) {
     let option: ImageZoomAnimationOption
     if #available(iOS 10.0, *) {
       option = ImageZoomAnimationOption.perferred {
@@ -77,7 +67,7 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
     } else {
       option = ImageZoomAnimationOption.fallback(springDampingRatio: 1, initialSpringVelocity: 0, options: [ViewAnimationOptions.curveEaseIn])
     }
-    self.init(duration: duration, option: option, animator: animator, animationWillBegin: animationWillBegin, animationDidFinish: animationDidFinish)
+    self.init(duration: duration, option: option, provider: provider, animationWillBegin: animationWillBegin, animationDidFinish: animationDidFinish)
   }
 
   public var interactiveTransitioning: UIViewControllerInteractiveTransitioning? {
@@ -125,10 +115,6 @@ public class ZoomOutAnimatedTransitioning: NSObject, UIViewControllerAnimatedTra
     guard let toSnapshotView = toVC.view.snapshotView(afterScreenUpdates: true) else { aborted = true; return }
 
     guard let image = image else { aborted = true; return }
-    if let _toImageView = toImageView {
-      toImageViewFrame = _toImageView.superview?.convert(_toImageView.frame, to: UIApplication.shared.keyWindow)
-      toImageView = nil
-    }
     guard let toImageViewFrame = toImageViewFrame else { aborted = true; return }
     guard let fromImageViewFrame = provider.currentImageViewFrame else { aborted = true; return }
 

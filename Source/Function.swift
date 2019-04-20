@@ -19,7 +19,6 @@ func upsearch<T, U>(from starter: T, maximumSearch: Int, type: U.Type, father: (
   return _nextFinder as? U
 }
 
-
 func drawImage(inSize size: CGSize, opaque: Bool = false, scale: CGFloat = 0, action: ((CGContext?) -> Void)) -> UIImage? {
   if #available(iOS 10.0, *) {
     let format = UIGraphicsImageRendererFormat.default()

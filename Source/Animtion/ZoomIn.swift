@@ -13,45 +13,35 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
   let duration: TimeInterval
   let option: ImageZoomAnimationOption
   let image: UIImage?
-  var fromImageViewFrame: CGRect?
+  let fromImageViewFrame: CGRect?
   let fromImageViewContentMode: ViewContentMode
-  let provider: ImageZoomProvider
+  let provider: LargePhotoViewProvider
   let animationWillBegin: (() -> Void)?
   let animationDidFinish: ((Bool) -> Void)?
+
   public var prepareAnimation: ((_ imageView: UIImageView) -> Void)?
   public var userAnimation: ((_ isInteractive: Bool, _ imageView: UIImageView) -> Void)?
   public var transitionDidFinish: (() -> Void)?
 
-
   public init(duration: TimeInterval,
               option: ImageZoomAnimationOption,
-              animator: ImageZoomAnimator,
+              provider: PhotoZoomInProvider,
               animationWillBegin: (() -> Void)?,
               animationDidFinish: ((Bool) -> Void)?) {
     self.duration = duration
     self.option = option
     self.animationWillBegin = animationWillBegin
     self.animationDidFinish = animationDidFinish
-    switch animator {
-    case let .showFromImageView(fromImageView, image, provider):
-      self.image = image
-      self.fromImageViewFrame = fromImageView.superview?.convert(fromImageView.frame, to: UIApplication.shared.keyWindow)
-      self.fromImageViewContentMode = fromImageView.contentMode
-      self.provider = provider
-    case let .showFromImageViewFrame(fromImageViewFrame, fromImageViewContentMode, image, provider):
-      self.image = image
-      self.fromImageViewFrame = fromImageViewFrame
-      self.fromImageViewContentMode = fromImageViewContentMode
-      self.provider = provider
-    default:
-      fatalError("wrong animator")
-    }
+    self.image = provider.source.image
+    self.fromImageViewFrame = provider.source.frame
+    self.fromImageViewContentMode = provider.source.contentMode
+    self.provider = provider.destionation
   }
 
   public convenience init(duration: TimeInterval,
-                   animator: ImageZoomAnimator,
-                   animationWillBegin: (() -> Void)? = nil,
-                   animationDidFinish: ((Bool) -> Void)? = nil) {
+                          provider: PhotoZoomInProvider,
+                          animationWillBegin: (() -> Void)? = nil,
+                          animationDidFinish: ((Bool) -> Void)? = nil) {
     let option: ImageZoomAnimationOption
     if #available(iOS 10.0, *) {
       option = ImageZoomAnimationOption.perferred {
@@ -60,7 +50,7 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
     } else {
       option = ImageZoomAnimationOption.fallback(springDampingRatio: 1, initialSpringVelocity: 0, options: [ViewAnimationOptions.curveEaseInOut])
     }
-    self.init(duration: duration, option: option, animator: animator, animationWillBegin: animationWillBegin, animationDidFinish: animationDidFinish)
+    self.init(duration: duration, option: option, provider: provider, animationWillBegin: animationWillBegin, animationDidFinish: animationDidFinish)
   }
 
   public func transitionDuration(using transitionContext: UIViewControllerContextTransitioning?) -> TimeInterval {
@@ -84,8 +74,8 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
 
 
     // if view isHidden, then its snapshot View is blank
-    containerView.addSubview(fromVC.view)
     containerView.addSubview(toVC.view)
+    containerView.addSubview(fromVC.view)
     toVC.view.frame = transitionContext.finalFrame(for: toVC)
     // for snapshot without page, autolayout
     toVC.view.setNeedsLayout()
@@ -106,8 +96,8 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
     toSnapshotView.alpha = 0
     toSnapshotView.frame = transitionContext.finalFrame(for: toVC)
 
-    containerView.addSubview(fromSnapshotView)
     containerView.addSubview(toSnapshotView)
+    containerView.addSubview(fromSnapshotView)
 
     let mockSourceImageView = UIImageView(image: image)
     mockSourceImageView.clipsToBounds = true

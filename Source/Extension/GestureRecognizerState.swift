@@ -24,6 +24,8 @@ extension GestureRecognizerState {
       return "cancelled"
     case .failed:
       return "failed"
+    @unknown default:
+      return "unknown"
     }
   }
 }
