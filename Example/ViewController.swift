@@ -8,7 +8,6 @@
 
 import UIKit
 import PhotoViewController
-import AlamofireImage
 import MobileCoreServices
 import PhotosUI
 import FLAnimatedImage
@@ -25,12 +24,29 @@ class ViewController: UITableViewController {
 
   var selectedIndexP: IndexPath?
 
+  var cache: NSCache = NSCache<NSString, UIImage>()
+
   lazy var datum: [[MediaResource]] = {
     var array: [[MediaResource]] = [0, 1].map { _ -> [MediaResource] in
       return (0...10).map({ String(format: "https://raw.githubusercontent.com/onevcat/Kingfisher/master/images/kingfisher-%d.jpg", $0) })
         .map({ urlString in
           return MediaResource(setImageBlock: { imageView in
-            imageView?.af_setImage(withURL: URL(string: urlString)!, placeholderImage: UIImage(named: "placeholder"))
+            if let cacheImage = self.cache.object(forKey: urlString as NSString) {
+              imageView?.image = cacheImage
+              return
+            }
+            imageView?.image = UIImage(named: "placeholder")
+            URLSession.shared.dataTask(with: URL(string: urlString)!, completionHandler: { (_data, _resp, _error) in
+              guard let data = _data else {
+                return
+              }
+              if let image = UIImage(data: data) {
+                self.cache.setObject(image, forKey: urlString as NSString)
+                DispatchQueue.main.async {
+                  imageView?.image = image
+                }
+              }
+            }).resume()
           })
         })
       // "https://raw.githubusercontent.com/onevcat/Kingfisher/master/images/kingfisher-0.jpg" is for testing HTTP-404 not found
