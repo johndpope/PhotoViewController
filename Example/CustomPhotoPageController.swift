@@ -75,9 +75,13 @@ class MyPagingController<T: IndexPathSearchable>: PhotoPageController<T> {
 /// custom
 class CustomPhotoPageController: UIViewController, ImageZoomForceTouchProvider {
 
+  var nextForceTouchReceiver: ImageZoomForceTouchProvider? {
+    return page
+  }
+
   var isForceTouching: Bool = false {
     didSet {
-      page?.isForceTouching = isForceTouching
+      nextForceTouchReceiver?.isForceTouching = isForceTouching
     }
   }
 

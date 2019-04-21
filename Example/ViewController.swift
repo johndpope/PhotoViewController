@@ -68,7 +68,6 @@ class ViewController: UITableViewController {
     navigationController?.delegate = nil
   }
 
-
   override func numberOfSections(in tableView: UITableView) -> Int {
     return datum.count
   }
@@ -125,7 +124,7 @@ class ViewController: UITableViewController {
     }
   }
 
-  func showController(at indexPath: IndexPath, previewing: Bool) -> UIViewController? {
+  func showController(at indexPath: IndexPath, previewing: Bool) -> CustomPhotoPageController? {
     selectedIndexP = indexPath
     PhotoViewManager.default.defaultImmersiveMode = defaultState
     PhotoViewManager.default.viewTapAction = viewTapAction
@@ -137,17 +136,24 @@ class ViewController: UITableViewController {
     }
     let customPage = CustomPhotoPageController(modally: modally, startIndex: indexPath, resources: datum, navigationOrientation: scrollDirection)
     customPage.page!.loop = pageLoop
-    customPage.transitioningDelegate = transitionProvider
-    customPage.modalPresentationStyle = .custom
     customPage.page!.didScrollToPageHandler = { [weak customPage, weak self] idxPath in
       guard let strongself = self else { return }
       customPage?.pageControl?.numberOfPages = strongself.datum[idxPath.section].count
       customPage?.pageControl?.currentPage = idxPath.row
     }
-    customPage.page!.resourcesDeleteDidCompleteHandler = { [weak self] idxPath, _ in
+    customPage.page?.restoreNavigationControllerDelegateHandler = { [weak self] in
+      self?.navigationController?.delegate = $0
+    }
+    customPage.page!.tryDeleteResourceHandler = { [weak self] idxPath, comp in
       guard let strongself = self else { return }
-      strongself.datum.removeItemAt(indexPath: idxPath)
-      strongself.tableView.reloadData()
+      DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+        let success = Bool.random()
+        if success {
+          strongself.datum.removeItemAt(indexPath: idxPath)
+          strongself.tableView.reloadData()
+        }
+        comp(success)
+      }
     }
     customPage.view.alpha = 1
     customPage.isForceTouching = previewing
@@ -158,10 +164,13 @@ class ViewController: UITableViewController {
   override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
     tableView.deselectRow(at: indexPath, animated: false)
     let customPage = showController(at: indexPath, previewing: false)!
+    prepareForZoomTransitioning(pageController: customPage,
+                                holder: customPage.page!,
+                                provider: transitionProvider,
+                                modal: modally)
     if modally {
       navigationController?.present(customPage, animated: true, completion: nil)
     } else {
-      navigationController?.delegate = transitionProvider
       navigationController?.pushViewController(customPage, animated: true)
     }
   }
@@ -183,10 +192,13 @@ extension ViewController: UIViewControllerPreviewingDelegate {
   @available(iOS 9.0, *)
   func previewingContext(_ previewingContext: UIViewControllerPreviewing, commit viewControllerToCommit: UIViewController) {
     (viewControllerToCommit as? ImageZoomForceTouchProvider)?.isForceTouching = false
+    prepareForZoomTransitioning(pageController: viewControllerToCommit,
+                                holder: (viewControllerToCommit as! CustomPhotoPageController).page!,
+                                provider: transitionProvider,
+                                modal: modally)
     if modally {
       navigationController?.present(viewControllerToCommit, animated: true, completion: nil)
     } else {
-      navigationController?.delegate = transitionProvider
       navigationController?.pushViewController(viewControllerToCommit, animated: true)
     }
   }
@@ -302,7 +314,7 @@ extension ViewController {
 // MARK: - custom transition
 extension ViewController {
 
-  func photoZoomInTransition(incoming viewController: UIViewController) -> UIViewControllerAnimatedTransitioning? {
+  func photoZoomInTransition(incoming viewController: UIViewController) -> ZoomInAnimatedTransitioning? {
     guard let selectedIndexP = selectedIndexP else { return nil }
     guard let cell = tableView.cellForRow(at: selectedIndexP) else { return nil }
     guard let imageView = cell.contentView.firstSubview(ofType: UIImageView.self) else { return nil }
@@ -329,7 +341,7 @@ extension ViewController {
     return t
   }
 
-  func photoZoomOutTransition(outgoing viewController: UIViewController) -> UIViewControllerAnimatedTransitioning? {
+  func photoZoomOutTransition(outgoing viewController: UIViewController) -> ZoomOutAnimatedTransitioning? {
     guard let viewController = viewController as? CustomPhotoPageController else { return nil }
     let selectedIndexP = viewController.page!.userCurrentIndexPath
     guard tableView.numberOfSections > selectedIndexP.section && tableView.numberOfRows(inSection: selectedIndexP.section) > selectedIndexP.row  else {

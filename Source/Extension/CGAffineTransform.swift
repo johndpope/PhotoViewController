@@ -8,7 +8,6 @@
 
 import Foundation
 
-
 extension CGAffineTransform {
   func makeScale(to scale: CGFloat, ratate angle: CGFloat = 0) -> CGAffineTransform {
     let scaleTransform = self.concatenating(CGAffineTransform(scaleX: scale, y: scale))

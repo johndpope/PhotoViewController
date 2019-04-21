@@ -8,14 +8,22 @@
 
 import UIKit
 
-open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPageViewControllerDelegate, UIPageViewControllerDataSource, LargePhotoViewProvider, ImageZoomForceTouchProvider {
+open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPageViewControllerDelegate, UIPageViewControllerDataSource, LargePhotoViewProvider, ImageZoomForceTouchProvider, UINavigationControllerDelegateHolder {
+
+  public var restoreNavigationControllerDelegateHandler: ((UINavigationControllerDelegate?) -> Void)?
+
+  public var navigationControllerDelegateStorage: UINavigationControllerDelegate?
 
   public var isForceTouching: Bool = false {
     didSet {
       let size = PhotoViewManager.default.contentSize(forPreviewing: self.isForceTouching, resourceSize: self.currentImageViewFrame?.size)
       self.pageController.preferredContentSize = size
-      currentPhotoViewController?.isForceTouching = isForceTouching
+      nextForceTouchReceiver?.isForceTouching = isForceTouching
     }
+  }
+
+  public var nextForceTouchReceiver: ImageZoomForceTouchProvider? {
+    return currentPhotoViewController
   }
 
   public private(set) var isModalTransition: Bool = false
@@ -46,9 +54,9 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     }
   }
 
-  open var resourcesDeleteDidCompleteHandler: ((_ indexPath: IndexPath, _ removed: MediaResource) -> Void)?
+  open var tryDeleteResourceHandler: ((_ indexPath: IndexPath, _ completion: @escaping (Bool) -> Void) -> Void)?
 
-  open var resourcesDeleteHandler: ((_ collection: inout [T], _ indexPath: IndexPath) -> MediaResource)?
+  open var deleteResourceHandler: ((_ collection: inout [T], _ indexPath: IndexPath) -> MediaResource)?
 
   open var didScrollToPageHandler: ((_ indexPath: IndexPath) -> Void)?
 
@@ -154,8 +162,6 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     }
   }
 
-
-
   // MARK: - Add UIPageViewController
 
   open func addPage() -> Void {
@@ -221,14 +227,40 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   // MARK: - delete
 
   open func removeResource(at indexPath: IndexPath) -> Void {
-    assert(resourcesDeleteDidCompleteHandler != nil, "you should implement delete completion")
+    guard resources.allIndexPaths(where: { _ in true }, matchFirst: false).contains(indexPath) else {
+      return
+    }
+    let resource = resources[resource: indexPath]
+    guard !resource.removing else {
+      return
+    }
+    resource.removing = true
+    assert(tryDeleteResourceHandler != nil, "you should implement delete handler")
+    let userIndexPath = PhotoViewManager.default.userIndexPath(template: userStartIndexPath, form: indexPath)
+    let successBlock: (Bool) -> Void = { [weak self] (success) in
+      guard let strongself = self else { return }
+      if success {
+        let newResource = strongself.resources[resource: indexPath]
+        if newResource == resource {
+          strongself.removeResourceSuccessfully(at: indexPath)
+        } else if let newIndexPath = strongself.resources.allIndexPaths(where: { $0 == resource }, matchFirst: true).first {
+          strongself.removeResourceSuccessfully(at: newIndexPath)
+        }
+      } else {
+        resource.removing = false
+      }
+    }
+    tryDeleteResourceHandler?(userIndexPath, successBlock)
+  }
+
+  func removeResourceSuccessfully(at indexPath: IndexPath) -> Void {
     var oldFlatList = resources.allIndexPaths(where: { _ in true }, matchFirst: false)
     #if swift(>=4.2)
     let oldFlatIndex = oldFlatList.firstIndex(of: indexPath)
     #else
     let oldFlatIndex = oldFlatList.index(of: indexPath)
     #endif
-    resourcesDeleteDidCompleteHandler?(PhotoViewManager.default.userIndexPath(template: userStartIndexPath, form: indexPath), resourcesDeleteHandler?(&resources, indexPath) ?? resources.removeItemAt(indexPath: indexPath))
+    _ = deleteResourceHandler?(&resources, indexPath) ?? resources.removeItemAt(indexPath: indexPath)
     var newFlatList = resources.allIndexPaths(where: { _ in true }, matchFirst: false)
     let newIndices = Array<Int>(newFlatList.indices)
 
@@ -320,6 +352,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   // MARK: - deinit
 
   deinit {
+    restoreNavigationControllerDelegateHandler?(navigationControllerDelegateStorage)
     PhotoViewManager.default.notificationCenter.removeObserver(self)
   }
 

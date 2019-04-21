@@ -58,4 +58,5 @@ public enum ImageZoomAnimationOption {
 
 public protocol ImageZoomForceTouchProvider: class {
   var isForceTouching: Bool { set get }
+  var nextForceTouchReceiver: ImageZoomForceTouchProvider? { get }
 }

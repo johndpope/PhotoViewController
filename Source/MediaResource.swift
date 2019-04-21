@@ -36,6 +36,8 @@ open class MediaResource {
 
   public let type: MediaResourceType
 
+  public var removing: Bool = false
+
   /// init
   ///
   /// - Parameters:

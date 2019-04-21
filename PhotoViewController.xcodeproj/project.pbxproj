@@ -195,12 +195,12 @@
 				99332350213240DF00F269D1 /* TypeAlias.swift */,
 				99F9EE642117F50E005CA7F8 /* Extension */,
 				99F9EE5F2117F469005CA7F8 /* View Controller */,
-				99F9EE5A2117DEB3005CA7F8 /* Animtion */,
+				99F9EE5A2117DEB3005CA7F8 /* Animation */,
 			);
 			path = Source;
 			sourceTree = "<group>";
 		};
-		99F9EE5A2117DEB3005CA7F8 /* Animtion */ = {
+		99F9EE5A2117DEB3005CA7F8 /* Animation */ = {
 			isa = PBXGroup;
 			children = (
 				99F78B9D226AC78700C3F227 /* TransitionDelegate.swift */,
@@ -208,7 +208,7 @@
 				99F9EE5821143E50005CA7F8 /* ZoomIn.swift */,
 				99F9EE5B2117DECE005CA7F8 /* ZoomOut.swift */,
 			);
-			path = Animtion;
+			path = Animation;
 			sourceTree = "<group>";
 		};
 		99F9EE5F2117F469005CA7F8 /* View Controller */ = {

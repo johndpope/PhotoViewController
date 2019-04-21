@@ -10,7 +10,7 @@ import Foundation
 import PhotosUI
 import AVFoundation.AVUtilities
 
-open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestureRecognizerDelegate {
+open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestureRecognizerDelegate, ImageZoomForceTouchProvider {
 
   public var isForceTouching: Bool = false {
     didSet {
@@ -20,9 +20,12 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
           imageView.image = PhotoViewManager.default.hintImage
         }
       }
+      nextForceTouchReceiver?.isForceTouching = isForceTouching
     }
   }
-  
+
+  public var nextForceTouchReceiver: ImageZoomForceTouchProvider?
+
   public let isModalTransition : Bool
   public let contentView: UIView
   public private(set) var isStatusBarHidden: Bool = false {

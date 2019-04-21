@@ -9,8 +9,13 @@
 import UIKit
 
 public protocol PhotoZoomInOutTransitionProviderDelegate: NSObjectProtocol {
-  func photoZoomInTransition(incoming viewController: UIViewController) -> UIViewControllerAnimatedTransitioning?
-  func photoZoomOutTransition(outgoing viewController: UIViewController) -> UIViewControllerAnimatedTransitioning?
+  func photoZoomInTransition(incoming viewController: UIViewController) -> ZoomInAnimatedTransitioning?
+  func photoZoomOutTransition(outgoing viewController: UIViewController) -> ZoomOutAnimatedTransitioning?
+}
+
+public protocol UINavigationControllerDelegateHolder: NSObjectProtocol {
+  var navigationControllerDelegateStorage: UINavigationControllerDelegate? { get set }
+  var restoreNavigationControllerDelegateHandler: ((UINavigationControllerDelegate?) -> Void)? { get set }
 }
 
 open class PhotoZoomInOutTransitionProvider: NSObject, UIViewControllerTransitioningDelegate, UINavigationControllerDelegate {

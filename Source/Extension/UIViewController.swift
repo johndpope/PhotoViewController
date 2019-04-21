@@ -41,3 +41,20 @@ extension UIViewController {
   }
 
 }
+
+public extension UIViewController {
+
+  func prepareForZoomTransitioning(pageController: UIViewController,
+                                   holder: UINavigationControllerDelegateHolder,
+                                   provider: PhotoZoomInOutTransitionProvider,
+                                   modal: Bool) {
+    if modal {
+      pageController.transitioningDelegate = provider
+      pageController.modalPresentationStyle = .custom
+    } else {
+      holder.navigationControllerDelegateStorage = navigationController?.delegate
+      navigationController?.delegate = provider
+    }
+  }
+
+}
