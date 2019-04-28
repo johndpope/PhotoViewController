@@ -138,16 +138,17 @@ class ViewController: UITableViewController {
 
   func showController(at indexPath: IndexPath, previewing: Bool) -> CustomPhotoPageController? {
     selectedIndexP = indexPath
-    PhotoViewManager.default.defaultImmersiveMode = defaultState
-    PhotoViewManager.default.viewTapAction = viewTapAction
-    PhotoViewManager.default.interactiveDismissDirection = panDirection
-    PhotoViewManager.default.interactiveDismissScaleFactor = panScale
-    if previewing {
-      let cell = tableView.cellForRow(at: indexPath)!
-      PhotoViewManager.default.hintImage = cell.contentView.firstSubview(ofType: UIImageView.self)?.image
-    }
     let customPage = CustomPhotoPageController(modally: modally, startIndex: indexPath, resources: datum, navigationOrientation: scrollDirection)
     customPage.page!.loop = pageLoop
+    let configuration = customPage.page!.configuration
+    configuration.defaultImmersiveMode = defaultState
+    configuration.viewTapAction = viewTapAction
+    configuration.interactiveDismissDirection = panDirection
+    configuration.interactiveDismissScaleFactor = panScale
+    if previewing {
+      let cell = tableView.cellForRow(at: indexPath)!
+      configuration.hintImage = cell.contentView.firstSubview(ofType: UIImageView.self)?.image
+    }
     customPage.page!.didScrollToPageHandler = { [weak customPage, weak self] idxPath in
       guard let strongself = self else { return }
       customPage?.pageControl?.numberOfPages = strongself.datum[idxPath.section].count

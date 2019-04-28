@@ -27,7 +27,7 @@ public class ZoomInAnimatedTransitioning: ZoomAnimatedTransitioning {
     let containerView = transitionContext.containerView
     defer {
       if aborted {
-        transitionContext.completeTransition(true)
+        transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
         delegate?.transitionDidFinishAnimation(transitionAnimator: self, transitionContext: transitionContext, finished: false)
         provider.currentImageViewHidden = false
       }
@@ -51,7 +51,7 @@ public class ZoomInAnimatedTransitioning: ZoomAnimatedTransitioning {
     guard let toSnapshotView = toVC.snapshotViewOnlyPageView(afterScreenUpdates: true) else { aborted = true; return }
 
     guard let image = image else { aborted = true; return }
-    PhotoViewManager.default.hintImage = image
+    provider.configuration.hintImage = image
     guard let sourceImageViewFrame = fromImageViewFrame else { aborted = true; return }
     guard let toImageViewFrame = provider.currentImageViewFrame else { aborted = true; return }
 
@@ -95,6 +95,9 @@ public class ZoomInAnimatedTransitioning: ZoomAnimatedTransitioning {
         mockSourceImageView.removeFromSuperview()
         toControlSnapshotView?.removeFromSuperview()
         toVC.view.isHidden = false
+        if !transitionContext.transitionWasCancelled {
+          fromVC.view.removeFromSuperview()
+        }
         transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
       }
       guard let strongself = self else { return }

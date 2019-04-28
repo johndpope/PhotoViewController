@@ -14,6 +14,7 @@ public protocol LargePhotoViewProvider: class {
   var currentImage: UIImage? { get }
   var isModalTransition: Bool { get }
   var dismissalInteractiveController: ZoomOutAnimatedInteractiveController? { get }
+  var configuration: PhotoViewConfiguration { get }
 }
 
 public struct SmallPhotoViewProvider {

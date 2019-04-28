@@ -10,9 +10,11 @@ import UIKit
 
 open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPageViewControllerDelegate, UIPageViewControllerDataSource, LargePhotoViewProvider, ImageZoomForceTouchProvider {
 
+  public let configuration: PhotoViewConfiguration = PhotoViewConfiguration()
+
   public var isForceTouching: Bool = false {
     didSet {
-      let size = PhotoViewManager.default.contentSize(forPreviewing: self.isForceTouching, resourceSize: self.currentImageViewFrame?.size)
+      let size = configuration.contentSize(forPreviewing: self.isForceTouching, resourceSize: self.currentImageViewFrame?.size)
       self.pageController.preferredContentSize = size
       nextForceTouchReceiver?.isForceTouching = isForceTouching
     }
@@ -32,7 +34,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
 
   /// the length is not equal to array's level, usually from user UI
   public var userCurrentIndexPath: IndexPath {
-    return PhotoViewManager.default.userIndexPath(template: userStartIndexPath, form: pagingCurrentIndexPath)
+    return configuration.userIndexPath(template: userStartIndexPath, form: pagingCurrentIndexPath)
   }
 
   /// the length is equal to array's level
@@ -40,11 +42,17 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
 
   private var pagingCurrentIndexPath: IndexPath = IndexPath(index: -1) {
     didSet {
-      didScrollToPageHandler?(PhotoViewManager.default.userIndexPath(template: userStartIndexPath, form: pagingCurrentIndexPath))
+      didScrollToPageHandler?(configuration.userIndexPath(template: userStartIndexPath, form: pagingCurrentIndexPath))
     }
   }
 
   open var statusBarStyle: UIStatusBarStyle = .default {
+    didSet {
+      setNeedsStatusBarAppearanceUpdate()
+    }
+  }
+
+  public private(set) var isStatusBarHidden: Bool = false {
     didSet {
       setNeedsStatusBarAppearanceUpdate()
     }
@@ -124,7 +132,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     self.isModalTransition = isModalTransition
     self.resources = resources
     self.userStartIndexPath = startIndexPath
-    self.pagingStartIndexPath = PhotoViewManager.default.pagingIndexPath(form: userStartIndexPath, desiredLength: resources.indexPathLength)
+    self.pagingStartIndexPath = configuration.pagingIndexPath(form: userStartIndexPath, desiredLength: resources.indexPathLength)
     self.navigationOrientation = navigationOrientation
     self.interPageSpacing = interPageSpacing
   }
@@ -133,8 +141,8 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
 
   override open func viewDidLoad() {
     super.viewDidLoad()
-    PhotoViewManager.default.reloadImmersiveMode(true)
-    changePhotoPageBackgroundColor()
+    configuration.reloadImmersiveMode(true)
+    updateImmersiveUI()
     addImmersiveModeObservers()
     addPage()
   }
@@ -142,15 +150,39 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   // MARK: - ImmersiveMode
 
   open func addImmersiveModeObservers() -> Void {
-    PhotoViewManager.default.notificationCenter.addObserver(self, selector: #selector(handleImmersiveModeDidChangeNotification(_:)), name: PhotoViewManager.immersiveModeDidChange, object: nil)
+    configuration.notificationCenter.addObserver(self, selector: #selector(handleImmersiveModeDidChangeNotification(_:)), name: PhotoViewConfiguration.immersiveModeDidChange, object: nil)
   }
 
   @objc func handleImmersiveModeDidChangeNotification(_ note: Notification) -> Void {
+    updateImmersiveUI()
+  }
+
+  open func updateImmersiveUI(_ state: PhotoImmersiveMode? = nil) -> Void {
+    debuglog("")
     changePhotoPageBackgroundColor()
+    let isNavigationBarHidden: Bool
+    switch state ?? configuration.immersiveMode {
+    case .normal:
+      isNavigationBarHidden = false
+    case .immersive:
+      isNavigationBarHidden = true
+    }
+    let block: () -> Void = { [weak self] in
+      self?.navigationController?.setNavigationBarHidden(isNavigationBarHidden, animated: true)
+      self?.isStatusBarHidden = isNavigationBarHidden
+    }
+    if !isModalTransition, navigationController == nil {
+      DispatchQueue.global().async { [weak self] in
+        while let strongself = self, strongself.navigationController == nil {}
+        DispatchQueue.main.async(execute: block)
+      }
+    } else {
+      block()
+    }
   }
 
   open func changePhotoPageBackgroundColor() -> Void {
-    switch PhotoViewManager.default.immersiveMode {
+    switch configuration.immersiveMode {
     case .immersive:
       self.view.backgroundColor = immersiveBackgroundColor
     case .normal:
@@ -192,7 +224,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   // MARK: - single photo
 
   open func photoShow(modally isModalTransition: Bool, resource: MediaResource) -> UIViewController {
-    return PhotoShowController(isModalTransition: isModalTransition, resource: resource)
+    return PhotoShowController(isModalTransition: isModalTransition, resource: resource, configuration: configuration)
   }
 
   // MARK: - get index
@@ -232,7 +264,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     }
     resource.removing = true
     assert(tryDeleteResourceHandler != nil, "you should implement delete handler")
-    let userIndexPath = PhotoViewManager.default.userIndexPath(template: userStartIndexPath, form: indexPath)
+    let userIndexPath = configuration.userIndexPath(template: userStartIndexPath, form: indexPath)
     let successBlock: (Bool) -> Void = { [weak self] (success) in
       guard let strongself = self else { return }
       if success {
@@ -329,13 +361,12 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
 
   // MARK: - UIViewController
 
-
   open override var prefersStatusBarHidden: Bool {
-    return currentPhotoViewController?.prefersStatusBarHidden ?? false
+    return isStatusBarHidden
   }
 
   open override var preferredStatusBarStyle: UIStatusBarStyle {
-    return currentPhotoViewController?.preferredStatusBarStyle ?? statusBarStyle
+    return statusBarStyle
   }
 
   open override func preferredContentSizeDidChange(forChildContentContainer container: UIContentContainer) {
@@ -348,7 +379,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   // MARK: - deinit
 
   deinit {
-    PhotoViewManager.default.notificationCenter.removeObserver(self)
+    configuration.notificationCenter.removeObserver(self)
   }
 
 }

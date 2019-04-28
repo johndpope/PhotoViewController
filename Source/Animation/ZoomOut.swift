@@ -57,7 +57,7 @@ public class ZoomOutAnimatedTransitioning: ZoomAnimatedTransitioning {
     let containerSuperview = containerView.superview
     defer {
       if aborted {
-        transitionContext.completeTransition(true)
+        transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
         delegate?.transitionDidFinishAnimation(transitionAnimator: self, transitionContext: transitionContext, finished: false)
         provider.currentImageViewHidden = false
       }
@@ -132,10 +132,21 @@ public class ZoomOutAnimatedTransitioning: ZoomAnimatedTransitioning {
         fromSnapshotView.removeFromSuperview()
         mockSourceImageView.removeFromSuperview()
         fromControlSnapshotView?.removeFromSuperview()
+
         // for status bar
         if let strongContext = transitionContext {
+          if !strongContext.transitionWasCancelled {
+            fromVC.view.removeFromSuperview()
+          }
+          if strongContext.isInteractive {
+            if strongContext.transitionWasCancelled {
+              strongContext.cancelInteractiveTransition()
+            } else {
+              strongContext.finishInteractiveTransition()
+            }
+          }
           strongContext.completeTransition(!strongContext.transitionWasCancelled)
-          PhotoViewManager.default.reloadImmersiveMode(!strongContext.transitionWasCancelled)
+          strongself.provider.configuration.reloadImmersiveMode(!strongContext.transitionWasCancelled)
         }
       }
       strongself.provider.currentImageViewHidden = false
@@ -208,7 +219,9 @@ public class ZoomOutAnimatedTransitioning: ZoomAnimatedTransitioning {
 
   deinit {
     delegate?.transitionDidFinish(transitionAnimator: self, finished: transitionIsCompleted)
-    transferrer?.restoreNavigationControllerDelegate()
+    if transitionIsCompleted {
+      transferrer?.restoreNavigationControllerDelegate()
+    }
   }
 
 }

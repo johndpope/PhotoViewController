@@ -53,7 +53,7 @@ class MyPhotoShowController: PhotoShowController {
   override func updateImmersiveUI(_ state: PhotoImmersiveMode?) {
     super.updateImmersiveUI(state)
     if resource.type ~= .gif {
-      let color = (state ?? PhotoViewManager.default.immersiveMode) ~= .normal ? UIColor.white : UIColor.black
+      let color = (state ?? configuration.immersiveMode) ~= .normal ? UIColor.white : UIColor.black
       gifView.stopAnimating()
       gifView.backgroundColor = color
       gifView.startAnimating()
@@ -66,7 +66,7 @@ class MyPhotoShowController: PhotoShowController {
 class MyPagingController<T: IndexPathSearchable>: PhotoPageController<T> {
 
   override func photoShow(modally: Bool, resource: MediaResource) -> UIViewController {
-    return MyPhotoShowController(isModalTransition: modally, resource: resource)
+    return MyPhotoShowController(isModalTransition: modally, resource: resource, configuration: configuration)
   }
 
 }

@@ -48,7 +48,7 @@ public struct PhotoViewDismissDirection: OptionSet {
 
 }
 
-open class PhotoViewManager {
+open class PhotoViewConfiguration {
 
   public static var immersiveModeDidChange: Notification.Name {
     return Notification.Name(rawValue: "PhotoViewManagerImmersiveModeDidChange")
@@ -60,11 +60,9 @@ open class PhotoViewManager {
     self.notificationCenter = notificationCenter
   }
 
-  public static let `default`: PhotoViewManager = PhotoViewManager()
-
   public private(set) var immersiveMode: PhotoImmersiveMode = .normal {
     didSet {
-      notificationCenter.post(name: PhotoViewManager.immersiveModeDidChange, object: nil)
+      notificationCenter.post(name: PhotoViewConfiguration.immersiveModeDidChange, object: nil)
     }
   }
 

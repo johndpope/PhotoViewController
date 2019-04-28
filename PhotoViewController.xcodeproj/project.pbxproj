@@ -33,7 +33,7 @@
 		99F9EE5C2117DECE005CA7F8 /* ZoomOut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE5B2117DECE005CA7F8 /* ZoomOut.swift */; };
 		99F9EE5E2117DEEB005CA7F8 /* Provider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE5D2117DEEB005CA7F8 /* Provider.swift */; };
 		99F9EE612117F488005CA7F8 /* PhotoPageController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE602117F488005CA7F8 /* PhotoPageController.swift */; };
-		99F9EE632117F4BC005CA7F8 /* PhotoViewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE622117F4BC005CA7F8 /* PhotoViewManager.swift */; };
+		99F9EE632117F4BC005CA7F8 /* PhotoViewConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE622117F4BC005CA7F8 /* PhotoViewConfiguration.swift */; };
 		99F9EE662117F51D005CA7F8 /* UIScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE652117F51D005CA7F8 /* UIScrollView.swift */; };
 		99F9EE6A2119684F005CA7F8 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE3C2112FAC0005CA7F8 /* ViewController.swift */; };
 		99F9EE6C21196EDB005CA7F8 /* SettingViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE6B21196EDA005CA7F8 /* SettingViewController.swift */; };
@@ -117,7 +117,7 @@
 		99F9EE5B2117DECE005CA7F8 /* ZoomOut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomOut.swift; sourceTree = "<group>"; };
 		99F9EE5D2117DEEB005CA7F8 /* Provider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Provider.swift; sourceTree = "<group>"; };
 		99F9EE602117F488005CA7F8 /* PhotoPageController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPageController.swift; sourceTree = "<group>"; };
-		99F9EE622117F4BC005CA7F8 /* PhotoViewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoViewManager.swift; sourceTree = "<group>"; };
+		99F9EE622117F4BC005CA7F8 /* PhotoViewConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoViewConfiguration.swift; sourceTree = "<group>"; };
 		99F9EE652117F51D005CA7F8 /* UIScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIScrollView.swift; sourceTree = "<group>"; };
 		99F9EE6B21196EDA005CA7F8 /* SettingViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingViewController.swift; sourceTree = "<group>"; };
 		99F9EE6D21196EE9005CA7F8 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
@@ -203,7 +203,7 @@
 			isa = PBXGroup;
 			children = (
 				99F9EE502112FB46005CA7F8 /* MediaResource.swift */,
-				99F9EE622117F4BC005CA7F8 /* PhotoViewManager.swift */,
+				99F9EE622117F4BC005CA7F8 /* PhotoViewConfiguration.swift */,
 				99F9EE75211AFEA0005CA7F8 /* IndexPathSearchable.swift */,
 				9933234A2132404A00F269D1 /* Function.swift */,
 				99332350213240DF00F269D1 /* TypeAlias.swift */,
@@ -400,7 +400,7 @@
 				99F9EE76211AFEA0005CA7F8 /* IndexPathSearchable.swift in Sources */,
 				99F9EE662117F51D005CA7F8 /* UIScrollView.swift in Sources */,
 				99F9EE532112FC00005CA7F8 /* PhotoShowController.swift in Sources */,
-				99F9EE632117F4BC005CA7F8 /* PhotoViewManager.swift in Sources */,
+				99F9EE632117F4BC005CA7F8 /* PhotoViewConfiguration.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -17,7 +17,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
       forceTouchDidChange()
       if isForceTouching {
         if imageView.image == nil {
-          imageView.image = PhotoViewManager.default.hintImage
+          imageView.image = configuration.hintImage
         }
       }
       nextForceTouchReceiver?.isForceTouching = isForceTouching
@@ -28,12 +28,8 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
 
   public let isModalTransition : Bool
   public let contentView: UIView
-  public private(set) var isStatusBarHidden: Bool = false {
-    didSet {
-      setNeedsStatusBarAppearanceUpdate()
-    }
-  }
 
+  public let configuration: PhotoViewConfiguration
   public let resource: MediaResource
   public let scrollView: UIScrollView
   public let imageView: UIImageView
@@ -83,7 +79,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   }
 
   open var scalingFator: CGFloat {
-    return PhotoViewManager.default.interactiveDismissScaleFactor
+    return configuration.interactiveDismissScaleFactor
   }
 
   open var orientationObserver: NSObjectProtocol?
@@ -95,8 +91,8 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
       } else {
         return imageView.frame.offsetBy(dx: scrollView.contentInset.left, dy: scrollView.contentInset.top)
       }
-    } else if let image = PhotoViewManager.default.hintImage {
-      if let contentMode = PhotoViewManager.default.contenMode(for: image.size) {
+    } else if let image = configuration.hintImage {
+      if let contentMode = configuration.contenMode(for: image.size) {
         return destinationResourceContentFrame(contentMode: contentMode, size: image.size).framOnWindow
       }
     }
@@ -113,9 +109,10 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
 
   // MARK: - init method
 
-  public init(isModalTransition: Bool, resource: MediaResource) {
+  public init(isModalTransition: Bool, resource: MediaResource, configuration: PhotoViewConfiguration) {
     self.isModalTransition  = isModalTransition
     self.resource = resource
+    self.configuration = configuration
     self.contentView = UIView(frame: CGRect.zero)
     self.scrollView = UIScrollView(frame: CGRect.zero)
     self.imageView = UIImageView(frame: CGRect.zero)
@@ -240,7 +237,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   // MARK: - dismissal draging
 
   open func isValidDissmissalTranslation(_ translation: CGPoint, for direction: PhotoViewDismissDirection? = nil) -> (valid: Bool, recognizedDirection: PhotoViewDismissDirection?) {
-    let direction = direction ?? PhotoViewManager.default.interactiveDismissDirection
+    let direction = direction ?? configuration.interactiveDismissDirection
     if direction == .none {
       return (false, nil)
     }
@@ -377,9 +374,9 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
       return
     }
     debuglog("Tap(single) state: \(tap.state.name)")
-    switch PhotoViewManager.default.viewTapAction {
+    switch configuration.viewTapAction {
     case .toggleImmersiveMode:
-      PhotoViewManager.default.nextImmersiveMode()
+      configuration.nextImmersiveMode()
     case .dismiss:
       scrollView.zoomToMin(at: .zero)
       uniformDismiss()
@@ -480,33 +477,14 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   // MARK: - ImmersiveUI
 
   open func updateImmersiveUI(_ state: PhotoImmersiveMode? = nil) -> Void {
-    debuglog("")
-    let isNavigationBarHidden: Bool
-    switch state ?? PhotoViewManager.default.immersiveMode {
-    case .normal:
-      isNavigationBarHidden = false
-    case .immersive:
-      isNavigationBarHidden = true
-    }
-    let block: () -> Void = { [weak self] in
-      self?.navigationController?.setNavigationBarHidden(isNavigationBarHidden, animated: true)
-      self?.isStatusBarHidden = isNavigationBarHidden
-    }
-    if !isModalTransition, navigationController == nil {
-      DispatchQueue.global().async { [weak self] in
-        while let strongself = self, strongself.navigationController == nil {}
-        DispatchQueue.main.async(execute: block)
-      }
-    } else {
-      block()
-    }
+
   }
 
   // MARK: - UIGestureRecognizerDelegate
 
   public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
     if gestureRecognizer == dismissalGestureRecognizer {
-      if PhotoViewManager.default.interactiveDismissDirection == .none {
+      if configuration.interactiveDismissDirection == .none {
         return false
       }
       let translation =  dismissalGestureRecognizer.translation(in: dismissalGestureRecognizer.view)
@@ -622,7 +600,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   // MARK: - ImmersiveMode observer
 
   open func addImmersiveModeObserver() {
-    PhotoViewManager.default.notificationCenter.addObserver(self, selector: #selector(handleImmersiveModeDidChangeNotification(_:)), name: PhotoViewManager.immersiveModeDidChange, object: nil)
+    configuration.notificationCenter.addObserver(self, selector: #selector(handleImmersiveModeDidChangeNotification(_:)), name: PhotoViewConfiguration.immersiveModeDidChange, object: nil)
   }
 
   @objc func handleImmersiveModeDidChangeNotification(_ note: Notification) -> Void {
@@ -684,7 +662,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     guard resourceSize.isValid else {
       return false
     }
-    guard let contentMode = PhotoViewManager.default.contenMode(for: resourceSize) else { return
+    guard let contentMode = configuration.contenMode(for: resourceSize) else { return
       false
     }
     let scale = scrollView.zoomScale
@@ -733,7 +711,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
 
   open func updateScrollViewInsets(_ zooming: Bool) -> Void {
     guard let resourceContentSize = resourceContentSize else { return }
-    guard let contentMode = PhotoViewManager.default.contenMode(for: resourceContentSize) else { return }
+    guard let contentMode = configuration.contenMode(for: resourceContentSize) else { return }
     switch contentMode {
     case .fitScreen:
       let imageViewSize = imageView.frame.size
@@ -834,11 +812,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     updateScrollViewInsets(true)
   }
 
-  // MARK: - UIViewController
 
-  override open var prefersStatusBarHidden: Bool {
-    return isStatusBarHidden
-  }
 
   open func imageDidChange() -> Void {
     recalibrateImageViewFrame()
@@ -873,7 +847,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     removeImageObserver()
     removeLivePhotoGestureObserver()
     orientationObserver.map{ NotificationCenter.default.removeObserver($0) }
-    PhotoViewManager.default.notificationCenter.removeObserver(self)
+    configuration.notificationCenter.removeObserver(self)
   }
 
 }
