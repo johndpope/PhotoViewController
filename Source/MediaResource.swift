@@ -28,15 +28,15 @@ public typealias MediaResourceRetrieving = (MediaResourceDealing) -> CGSize?
 
 open class MediaResource {
   /// for hash, like finding index
-  open var identifier: String
+  open private(set) var identifier: String
   /// load data
-  open var retrieving: MediaResourceRetrieving
+  open private(set) var retrieving: MediaResourceRetrieving
 
-  open var contentSize: CGSize = .zero
+  open private(set) var contentSize: CGSize = .zero
 
-  public let type: MediaResourceType
+  open private(set) var type: MediaResourceType
 
-  public var removing: Bool = false
+  open var removing: Bool = false
 
   /// init
   ///
