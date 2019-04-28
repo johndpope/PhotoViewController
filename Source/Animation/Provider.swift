@@ -41,6 +41,30 @@ public struct PhotoZoomInProvider {
   }
 }
 
+extension PhotoZoomInProvider: ZoomAnimatedTransitioningContentProvider {
+  public var image: UIImage? {
+    return source.image
+  }
+}
+
+extension PhotoZoomInProvider: ZoomAnimatedTransitioningGeometryProvider {
+  public var imageViewFrame: CGRect? {
+    return source.frame
+  }
+
+  public var imageViewContentMode: ViewContentMode {
+    return source.contentMode
+  }
+}
+
+extension PhotoZoomInProvider: ZoomAnimatedTransitioningLargePhotoViewProvider {
+  public var provider: LargePhotoViewProvider {
+    return destionation
+  }
+}
+
+extension PhotoZoomInProvider: ZoomAnimatedTransitioningProvider {}
+
 public struct PhotoZoomOutProvider {
   public let source: LargePhotoViewProvider
   public let destionation: SmallPhotoViewProvider
@@ -49,6 +73,30 @@ public struct PhotoZoomOutProvider {
     self.destionation = destionation
   }
 }
+
+extension PhotoZoomOutProvider: ZoomAnimatedTransitioningContentProvider {
+  public var image: UIImage? {
+    return source.currentImage
+  }
+}
+
+extension PhotoZoomOutProvider: ZoomAnimatedTransitioningGeometryProvider {
+  public var imageViewFrame: CGRect? {
+    return destionation.frame
+  }
+
+  public var imageViewContentMode: ViewContentMode {
+    return destionation.contentMode
+  }
+}
+
+extension PhotoZoomOutProvider: ZoomAnimatedTransitioningLargePhotoViewProvider {
+  public var provider: LargePhotoViewProvider {
+    return source
+  }
+}
+
+extension PhotoZoomOutProvider: ZoomAnimatedTransitioningProvider {}
 
 public enum ImageZoomAnimationOption {
   case fallback(springDampingRatio: CGFloat, initialSpringVelocity: CGFloat, options: ViewAnimationOptions)

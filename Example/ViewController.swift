@@ -80,10 +80,6 @@ class ViewController: UITableViewController {
     navigationController?.pushViewController(UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "setting"), animated: true)
   }
 
-  deinit {
-    navigationController?.delegate = nil
-  }
-
   override func numberOfSections(in tableView: UITableView) -> Int {
     return datum.count
   }
@@ -157,9 +153,6 @@ class ViewController: UITableViewController {
       customPage?.pageControl?.numberOfPages = strongself.datum[idxPath.section].count
       customPage?.pageControl?.currentPage = idxPath.row
     }
-    customPage.page?.restoreNavigationControllerDelegateHandler = { [weak self] in
-      self?.navigationController?.delegate = $0
-    }
     customPage.page!.tryDeleteResourceHandler = { [weak self] idxPath, comp in
       guard let strongself = self else { return }
       DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
@@ -181,8 +174,8 @@ class ViewController: UITableViewController {
     tableView.deselectRow(at: indexPath, animated: false)
     let customPage = showController(at: indexPath, previewing: false)!
     prepareForZoomTransitioning(pageController: customPage,
-                                holder: customPage.page!,
-                                provider: transitionProvider,
+                                transferrer: self,
+                                transitioningDelegate: transitionProvider,
                                 modal: modally)
     if modally {
       navigationController?.present(customPage, animated: true, completion: nil)
@@ -191,8 +184,14 @@ class ViewController: UITableViewController {
     }
   }
 
-  lazy var transitionProvider = PhotoZoomInOutTransitionProvider(delegate: self)
+  lazy var transitionProvider = ZoomAnimatedTransitioningController(delegate: self)
 
+  var transferResult: UINavigationControllerDelegateTransferResult?
+}
+
+enum UINavigationControllerDelegateTransferResult {
+  case noViewController
+  case delegate(UINavigationControllerDelegate?)
 }
 
 extension ViewController: UIViewControllerPreviewingDelegate {
@@ -209,8 +208,8 @@ extension ViewController: UIViewControllerPreviewingDelegate {
   func previewingContext(_ previewingContext: UIViewControllerPreviewing, commit viewControllerToCommit: UIViewController) {
     (viewControllerToCommit as? ImageZoomForceTouchProvider)?.isForceTouching = false
     prepareForZoomTransitioning(pageController: viewControllerToCommit,
-                                holder: (viewControllerToCommit as! CustomPhotoPageController).page!,
-                                provider: transitionProvider,
+                                transferrer: self,
+                                transitioningDelegate: transitionProvider,
                                 modal: modally)
     if modally {
       navigationController?.present(viewControllerToCommit, animated: true, completion: nil)
@@ -326,75 +325,145 @@ extension ViewController {
   }
 }
 
+extension ViewController: UINavigationControllerDelegateTransferrer {
+
+  func transferDelegate(for controller: UINavigationController?) {
+    guard let controller = controller else {
+      self.transferResult = .noViewController
+      return
+    }
+    self.transferResult = .delegate(controller.delegate)
+  }
+
+  func restoreNavigationControllerDelegate() {
+    switch self.transferResult {
+    case .some(.delegate(let delegate)):
+      self.navigationController?.delegate = delegate
+    default:
+      break
+    }
+  }
+}
 
 // MARK: - custom transition
 extension ViewController {
 
-  func photoZoomInTransition(incoming viewController: UIViewController) -> ZoomInAnimatedTransitioning? {
-    guard let selectedIndexP = selectedIndexP else { return nil }
-    guard let cell = tableView.cellForRow(at: selectedIndexP) else { return nil }
-    guard let imageView = cell.contentView.firstSubview(ofType: UIImageView.self) else { return nil }
-    guard let viewController = viewController as? CustomPhotoPageController else { return nil }
-    let image = imageView.image
+  func currentImageView(direction: ZoomAnimatedTransitioningDirection, viewController: UIViewController) -> UIImageView? {
+    switch direction {
+    case .incoming:
+      guard let selectedIndexP = selectedIndexP else { return nil }
+      guard let cell = tableView.cellForRow(at: selectedIndexP) else { return nil }
+      guard let imageView = cell.contentView.firstSubview(ofType: UIImageView.self) else { return nil }
+      return imageView
+    case .outgoing:
+      guard let viewController = viewController as? CustomPhotoPageController else { return nil }
+      let selectedIndexP = viewController.page!.userCurrentIndexPath
+      guard tableView.numberOfSections > selectedIndexP.section && tableView.numberOfRows(inSection: selectedIndexP.section) > selectedIndexP.row  else {
+        return nil
+      }
+      tableView.scrollToRow(at: selectedIndexP, at: .none, animated: false)
+      guard let cell = tableView.cellForRow(at: selectedIndexP) else { return nil }
+      guard let imageView = cell.contentView.firstSubview(ofType: UIImageView.self) else { return nil }
+      return imageView
+    }
+  }
 
+  func photoZoomInTransition(incoming viewController: UIViewController) -> ZoomInAnimatedTransitioning? {
+    guard let viewController = viewController as? CustomPhotoPageController else { return nil }
+    guard let imageView = currentImageView(direction: .incoming, viewController: viewController) else { return nil }
     let t = ZoomInAnimatedTransitioning(duration: showingInterval,
                                        option: animationOption(forShowing: true),
-                                       provider: PhotoZoomInProvider(source: SmallPhotoViewProvider(imageView: imageView, image: image),
-                                                                     destionation: viewController.page!),
-                                       animationWillBegin: {
-                                        imageView.isHidden = true },
-                                       animationDidFinish: { _ in
-                                        imageView.isHidden = false })
-    t.prepareAnimation = { imageView in
-      imageView.clipsToBounds = true
-      imageView.layer.cornerRadius = cornerRadius
-    }
-    t.userAnimation = { _, imageView in
-      //FIXME: cornerRadius = 0, flick the screen, when using local photo on iOS 11
-      // imageView.layer.cornerRadius = 0
-      imageView.layer.cornerRadius = 1
-    }
+                                       provider: PhotoZoomInProvider(source: SmallPhotoViewProvider(imageView: imageView, image: imageView.image),
+                                                                     destionation: viewController.page!))
+    t.delegate = self
     return t
   }
 
   func photoZoomOutTransition(outgoing viewController: UIViewController) -> ZoomOutAnimatedTransitioning? {
     guard let viewController = viewController as? CustomPhotoPageController else { return nil }
-    let selectedIndexP = viewController.page!.userCurrentIndexPath
-    guard tableView.numberOfSections > selectedIndexP.section && tableView.numberOfRows(inSection: selectedIndexP.section) > selectedIndexP.row  else {
-      return nil
-    }
-    tableView.scrollToRow(at: selectedIndexP, at: .none, animated: false)
-    guard let cell = tableView.cellForRow(at: selectedIndexP) else { return nil }
-    guard let imageView = cell.contentView.firstSubview(ofType: UIImageView.self) else { return nil }
-
+    guard let imageView = currentImageView(direction: .outgoing, viewController: viewController) else { return nil }
     let t = ZoomOutAnimatedTransitioning(duration: dismissInterval,
                                          option: animationOption(forShowing: false),
                                          provider: PhotoZoomOutProvider(source: viewController.page!,
-                                                                        destionation: SmallPhotoViewProvider(imageView: imageView, image: nil)),
-                                         animationWillBegin: {
-                                          imageView.isHidden = true },
-                                         animationDidFinish: { _ in
-                                          imageView.isHidden = false })
-    t.prepareAnimation = { imageView in
-      imageView.clipsToBounds = true
-      imageView.layer.cornerRadius = 0
-    }
-    t.userAnimation = { interactive, cancelled, progress, imageView in
-      if !interactive {
-        imageView.layer.cornerRadius = cancelled ? 0 : cornerRadius
-      }
-    }
-    t.transitionDidFinish = { [weak self] (completed) in
-      if completed {
-        self?.navigationController?.delegate = nil
-      }
-    }
+                                                                        destionation: SmallPhotoViewProvider(imageView: imageView, image: nil)))
+    t.delegate = self
+    t.transferrer = self
     return t
   }
 
 }
 
-extension ViewController: PhotoZoomInOutTransitionProviderDelegate {}
+extension ViewController: ZoomAnimatedTransitioningDelegate {
+
+  func zoomTransition(direction: ZoomAnimatedTransitioningDirection, viewController: UIViewController) -> ZoomAnimatedTransitioning? {
+    switch direction {
+    case .incoming:
+      return self.photoZoomInTransition(incoming: viewController)
+    case .outgoing:
+      return self.photoZoomOutTransition(outgoing: viewController)
+    }
+  }
+
+  func transitionWillBegin(transitionAnimator: ZoomAnimatedTransitioning, transitionContext: UIViewControllerContextTransitioning) {
+    switch transitionAnimator.direction {
+    case .incoming:
+      guard let viewController = transitionContext.viewController(forKey: .to) else { return }
+      guard let imageView = currentImageView(direction: transitionAnimator.direction, viewController: viewController) else { return }
+      imageView.isHidden = true
+    case .outgoing:
+      guard let viewController = transitionContext.viewController(forKey: .from) else { return }
+      guard let imageView = currentImageView(direction: transitionAnimator.direction, viewController: viewController) else { return }
+      imageView.isHidden = true
+    }
+  }
+
+  func transitionDidFinish(transitionAnimator: ZoomAnimatedTransitioning, finished: Bool) {
+    switch transitionAnimator.direction {
+    case .incoming:
+      break
+    case .outgoing:
+      break
+    }
+  }
+
+  func transitionWillBeginAnimation(transitionAnimator: ZoomAnimatedTransitioning, transitionContext: UIViewControllerContextTransitioning, imageView: UIImageView) {
+    switch transitionAnimator.direction {
+    case .incoming:
+      imageView.clipsToBounds = true
+      imageView.layer.cornerRadius = cornerRadius
+    case .outgoing:
+      imageView.clipsToBounds = true
+      imageView.layer.cornerRadius = 0
+    }
+  }
+
+  func transitionDidFinishAnimation(transitionAnimator: ZoomAnimatedTransitioning, transitionContext: UIViewControllerContextTransitioning, finished: Bool) {
+    switch transitionAnimator.direction {
+    case .incoming:
+      guard let viewController = transitionContext.viewController(forKey: .to) else { return }
+      guard let imageView = currentImageView(direction: transitionAnimator.direction, viewController: viewController) else { return }
+      imageView.isHidden = false
+    case .outgoing:
+      guard let viewController = transitionContext.viewController(forKey: .from) else { return }
+      guard let imageView = currentImageView(direction: transitionAnimator.direction, viewController: viewController) else { return }
+      imageView.isHidden = false
+    }
+  }
+
+  func transitionUserAnimation(transitionAnimator: ZoomAnimatedTransitioning?, transitionContext: UIViewControllerContextTransitioning?, isInteractive: Bool, isCancelled: Bool, progress: CGFloat?, imageView: UIImageView) {
+    guard let transition = transitionAnimator else { return }
+    switch transition.direction {
+    case .incoming:
+      //FIXME: cornerRadius = 0, flick the screen, when using local photo on iOS 11
+      // imageView.layer.cornerRadius = 0
+      imageView.layer.cornerRadius = 1
+    case .outgoing:
+      if !isInteractive {
+        imageView.layer.cornerRadius = isCancelled ? 0 : cornerRadius
+      }
+    }
+  }
+}
 
 // MARK: - pick photo
 extension ViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {

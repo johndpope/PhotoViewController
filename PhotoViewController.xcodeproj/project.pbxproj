@@ -19,6 +19,7 @@
 		99F78B9F226ACB3800C3F227 /* TransitionDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F78B9D226AC78700C3F227 /* TransitionDelegate.swift */; };
 		99F78BA8226C2CC300C3F227 /* FLAnimatedImage.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 99F78BA5226C2CA800C3F227 /* FLAnimatedImage.framework */; };
 		99F78BA9226C2CC300C3F227 /* FLAnimatedImage.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 99F78BA5226C2CA800C3F227 /* FLAnimatedImage.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		99F78BAE2275BB6000C3F227 /* Zoom.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F78BAD2275BB6000C3F227 /* Zoom.swift */; };
 		99F9EE2E2112FA8E005CA7F8 /* PhotoViewController.h in Headers */ = {isa = PBXBuildFile; fileRef = 99F9EE2C2112FA8E005CA7F8 /* PhotoViewController.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		99F9EE3B2112FAC0005CA7F8 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE3A2112FAC0005CA7F8 /* AppDelegate.swift */; };
 		99F9EE402112FAC0005CA7F8 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 99F9EE3E2112FAC0005CA7F8 /* Main.storyboard */; };
@@ -99,6 +100,7 @@
 		99E07268212160DF005154AA /* UIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIView.swift; sourceTree = "<group>"; };
 		99F78B9D226AC78700C3F227 /* TransitionDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransitionDelegate.swift; sourceTree = "<group>"; };
 		99F78BA0226C2CA800C3F227 /* FLAnimatedImage.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = FLAnimatedImage.xcodeproj; path = FLAnimatedImage/FLAnimatedImage.xcodeproj; sourceTree = "<group>"; };
+		99F78BAD2275BB6000C3F227 /* Zoom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Zoom.swift; sourceTree = "<group>"; };
 		99F9EE292112FA8E005CA7F8 /* PhotoViewController.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = PhotoViewController.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		99F9EE2C2112FA8E005CA7F8 /* PhotoViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PhotoViewController.h; sourceTree = "<group>"; };
 		99F9EE2D2112FA8E005CA7F8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -219,6 +221,7 @@
 				99F9EE5D2117DEEB005CA7F8 /* Provider.swift */,
 				99F9EE5821143E50005CA7F8 /* ZoomIn.swift */,
 				99F9EE5B2117DECE005CA7F8 /* ZoomOut.swift */,
+				99F78BAD2275BB6000C3F227 /* Zoom.swift */,
 			);
 			path = Animation;
 			sourceTree = "<group>";
@@ -386,6 +389,7 @@
 				999B0F21211D325D00598F1F /* CGSize.swift in Sources */,
 				99F78B9F226ACB3800C3F227 /* TransitionDelegate.swift in Sources */,
 				99E0726721213183005154AA /* UIViewController.swift in Sources */,
+				99F78BAE2275BB6000C3F227 /* Zoom.swift in Sources */,
 				99E07269212160DF005154AA /* UIView.swift in Sources */,
 				99F9EE512112FB46005CA7F8 /* MediaResource.swift in Sources */,
 				99332351213240DF00F269D1 /* TypeAlias.swift in Sources */,

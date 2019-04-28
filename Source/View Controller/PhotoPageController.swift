@@ -8,11 +8,7 @@
 
 import UIKit
 
-open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPageViewControllerDelegate, UIPageViewControllerDataSource, LargePhotoViewProvider, ImageZoomForceTouchProvider, UINavigationControllerDelegateHolder {
-
-  public var restoreNavigationControllerDelegateHandler: ((UINavigationControllerDelegate?) -> Void)?
-
-  public var navigationControllerDelegateStorage: UINavigationControllerDelegate?
+open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPageViewControllerDelegate, UIPageViewControllerDataSource, LargePhotoViewProvider, ImageZoomForceTouchProvider {
 
   public var isForceTouching: Bool = false {
     didSet {
@@ -352,7 +348,6 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   // MARK: - deinit
 
   deinit {
-    restoreNavigationControllerDelegateHandler?(navigationControllerDelegateStorage)
     PhotoViewManager.default.notificationCenter.removeObserver(self)
   }
 

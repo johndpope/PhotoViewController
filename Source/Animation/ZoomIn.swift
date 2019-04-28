@@ -8,69 +8,34 @@
 
 import UIKit
 
-public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTransitioning {
+public class ZoomInAnimatedTransitioning: ZoomAnimatedTransitioning {
 
-  let duration: TimeInterval
-  let option: ImageZoomAnimationOption
-  let image: UIImage?
-  let fromImageViewFrame: CGRect?
-  let fromImageViewContentMode: ViewContentMode
-  let provider: LargePhotoViewProvider
-  let animationWillBegin: (() -> Void)?
-  let animationDidFinish: ((Bool) -> Void)?
-
-  public var prepareAnimation: ((_ imageView: UIImageView) -> Void)?
-  public var userAnimation: ((_ isInteractive: Bool, _ imageView: UIImageView) -> Void)?
-  public var transitionDidFinish: (() -> Void)?
-
-  public init(duration: TimeInterval,
-              option: ImageZoomAnimationOption,
-              provider: PhotoZoomInProvider,
-              animationWillBegin: (() -> Void)?,
-              animationDidFinish: ((Bool) -> Void)?) {
-    self.duration = duration
-    self.option = option
-    self.animationWillBegin = animationWillBegin
-    self.animationDidFinish = animationDidFinish
-    self.image = provider.source.image
-    self.fromImageViewFrame = provider.source.frame
-    self.fromImageViewContentMode = provider.source.contentMode
-    self.provider = provider.destionation
+  public override var direction: ZoomAnimatedTransitioningDirection {
+    return .incoming
   }
 
-  public convenience init(duration: TimeInterval,
-                          provider: PhotoZoomInProvider,
-                          animationWillBegin: (() -> Void)? = nil,
-                          animationDidFinish: ((Bool) -> Void)? = nil) {
-    let option: ImageZoomAnimationOption
-    if #available(iOS 10.0, *) {
-      option = ImageZoomAnimationOption.perferred {
-        return UIViewPropertyAnimator(duration: $0, dampingRatio: 0.6, animations: nil)
-      }
-    } else {
-      option = ImageZoomAnimationOption.fallback(springDampingRatio: 1, initialSpringVelocity: 0, options: [ViewAnimationOptions.curveEaseInOut])
-    }
-    self.init(duration: duration, option: option, provider: provider, animationWillBegin: animationWillBegin, animationDidFinish: animationDidFinish)
+  var fromImageViewFrame: CGRect? {
+    return imageViewFrame
+  }
+  
+  var fromImageViewContentMode: ViewContentMode {
+    return imageViewContentMode
   }
 
-  public func transitionDuration(using transitionContext: UIViewControllerContextTransitioning?) -> TimeInterval {
-    return duration
-  }
-
-  public func animateTransition(using transitionContext: UIViewControllerContextTransitioning) {
+  public override func animateTransition(using transitionContext: UIViewControllerContextTransitioning) {
     var aborted: Bool = false
+    let containerView = transitionContext.containerView
     defer {
       if aborted {
         transitionContext.completeTransition(true)
-        animationDidFinish?(false)
+        delegate?.transitionDidFinishAnimation(transitionAnimator: self, transitionContext: transitionContext, finished: false)
         provider.currentImageViewHidden = false
       }
     }
-    provider.currentImageViewHidden = true
-    animationWillBegin?()
-    let containerView = transitionContext.containerView
     guard let fromVC = transitionContext.viewController(forKey: UITransitionContextViewControllerKey.from) else { aborted = true; return }
     guard let toVC = transitionContext.viewController(forKey: UITransitionContextViewControllerKey.to) else { aborted = true; return }
+    provider.currentImageViewHidden = true
+    delegate?.transitionWillBegin(transitionAnimator: self, transitionContext: transitionContext)
 
 
     // if view isHidden, then its snapshot View is blank
@@ -103,7 +68,7 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
     mockSourceImageView.clipsToBounds = true
     mockSourceImageView.contentMode = fromImageViewContentMode
     mockSourceImageView.frame = sourceImageViewFrame
-    prepareAnimation?(mockSourceImageView)
+    delegate?.transitionWillBeginAnimation(transitionAnimator: self, transitionContext: transitionContext, imageView: mockSourceImageView)
     containerView.addSubview(mockSourceImageView)
 
     // like a sandwich, top -> bottom: (toControlSnapshotView, mockSourceImageView, toSnapshotView)
@@ -114,13 +79,13 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
       toControlSnapshotView.frame = toSnapshotView.frame
     }
 
-    let animations: () -> Void = { [weak self] in
+    let animations: () -> Void = { [weak self, weak transitionContext] in
       toSnapshotView.alpha = 1
       toControlSnapshotView?.alpha = 1
       fromSnapshotView.alpha = 0
       mockSourceImageView.frame = toImageViewFrame
       mockSourceImageView.contentMode = .scaleAspectFit
-      self?.userAnimation?(transitionContext.isInteractive, mockSourceImageView)
+      self?.delegate?.transitionUserAnimation(transitionAnimator: self, transitionContext: transitionContext, isInteractive: transitionContext?.isInteractive ?? false, isCancelled: false, progress: nil, imageView: mockSourceImageView)
     }
 
     let completion: () -> Void = { [weak self] in
@@ -134,7 +99,7 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
       }
       guard let strongself = self else { return }
       strongself.provider.currentImageViewHidden = false
-      strongself.animationDidFinish?(!transitionContext.transitionWasCancelled)
+      strongself.delegate?.transitionDidFinishAnimation(transitionAnimator: strongself, transitionContext: transitionContext, finished: !transitionContext.transitionWasCancelled)
     }
     performDefaultAnimations(animations, completion: completion)
   }
@@ -164,7 +129,7 @@ public class ZoomInAnimatedTransitioning: NSObject, UIViewControllerAnimatedTran
   }
 
   deinit {
-    transitionDidFinish?()
+    delegate?.transitionDidFinish(transitionAnimator: self, finished: true)
   }
 
 }

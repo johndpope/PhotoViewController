@@ -8,31 +8,26 @@
 
 import UIKit
 
-public protocol PhotoZoomInOutTransitionProviderDelegate: NSObjectProtocol {
-  func photoZoomInTransition(incoming viewController: UIViewController) -> ZoomInAnimatedTransitioning?
-  func photoZoomOutTransition(outgoing viewController: UIViewController) -> ZoomOutAnimatedTransitioning?
+public protocol UINavigationControllerDelegateTransferrer: class, NSObjectProtocol {
+  func transferDelegate(for controller: UINavigationController?)
+  func restoreNavigationControllerDelegate()
 }
 
-public protocol UINavigationControllerDelegateHolder: NSObjectProtocol {
-  var navigationControllerDelegateStorage: UINavigationControllerDelegate? { get set }
-  var restoreNavigationControllerDelegateHandler: ((UINavigationControllerDelegate?) -> Void)? { get set }
-}
+open class ZoomAnimatedTransitioningController: NSObject, UIViewControllerTransitioningDelegate, UINavigationControllerDelegate {
 
-open class PhotoZoomInOutTransitionProvider: NSObject, UIViewControllerTransitioningDelegate, UINavigationControllerDelegate {
+  public weak var delegate: ZoomAnimatedTransitioningDelegate?
 
-  weak var delegate: PhotoZoomInOutTransitionProviderDelegate?
-
-  public init(delegate: PhotoZoomInOutTransitionProviderDelegate) {
+  public init(delegate: ZoomAnimatedTransitioningDelegate) {
     super.init()
     self.delegate = delegate
   }
 
   func photoZoomInTransition(incoming viewController: UIViewController) -> UIViewControllerAnimatedTransitioning? {
-    return delegate?.photoZoomInTransition(incoming: viewController)
+    return delegate?.zoomTransition(direction: .incoming, viewController: viewController)
   }
 
   func photoZoomOutTransition(outgoing viewController: UIViewController) -> UIViewControllerAnimatedTransitioning? {
-    return delegate?.photoZoomOutTransition(outgoing: viewController)
+    return delegate?.zoomTransition(direction: .outgoing, viewController: viewController)
   }
 
   open func animationController(forPresented presented: UIViewController, presenting: UIViewController, source: UIViewController) -> UIViewControllerAnimatedTransitioning? {

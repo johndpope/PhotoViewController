@@ -45,15 +45,15 @@ extension UIViewController {
 public extension UIViewController {
 
   func prepareForZoomTransitioning(pageController: UIViewController,
-                                   holder: UINavigationControllerDelegateHolder,
-                                   provider: PhotoZoomInOutTransitionProvider,
+                                   transferrer: UINavigationControllerDelegateTransferrer,
+                                   transitioningDelegate: UIViewControllerTransitioningDelegate & UINavigationControllerDelegate,
                                    modal: Bool) {
     if modal {
-      pageController.transitioningDelegate = provider
+      pageController.transitioningDelegate = transitioningDelegate
       pageController.modalPresentationStyle = .custom
     } else {
-      holder.navigationControllerDelegateStorage = navigationController?.delegate
-      navigationController?.delegate = provider
+      transferrer.transferDelegate(for: navigationController)
+      navigationController?.delegate = transitioningDelegate
     }
   }
 
