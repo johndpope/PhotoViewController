@@ -145,6 +145,8 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     updateImmersiveUI()
     addImmersiveModeObservers()
     addPage()
+    let statusBarStyle = self.statusBarStyle
+    self.statusBarStyle = statusBarStyle
   }
 
   // MARK: - ImmersiveMode

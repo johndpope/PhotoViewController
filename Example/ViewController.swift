@@ -149,6 +149,7 @@ class ViewController: UITableViewController {
       let cell = tableView.cellForRow(at: indexPath)!
       configuration.hintImage = cell.contentView.firstSubview(ofType: UIImageView.self)?.image
     }
+    customPage.page?.statusBarStyle = .lightContent
     customPage.page!.didScrollToPageHandler = { [weak customPage, weak self] idxPath in
       guard let strongself = self else { return }
       customPage?.pageControl?.numberOfPages = strongself.datum[idxPath.section].count
@@ -193,6 +194,12 @@ class ViewController: UITableViewController {
 enum UINavigationControllerDelegateTransferResult {
   case noViewController
   case delegate(UINavigationControllerDelegate?)
+}
+
+extension UINavigationController {
+  open override var childForStatusBarStyle: UIViewController? {
+    return topViewController
+  }
 }
 
 extension ViewController: UIViewControllerPreviewingDelegate {
