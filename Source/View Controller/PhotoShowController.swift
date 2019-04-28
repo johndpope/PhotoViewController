@@ -86,6 +86,9 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
 
   open var imageViewFrame: CGRect {
     if imageView.image != nil {
+      if !scrollView.reachMinZoomScale {
+        return imageView.superview!.convert(imageView.frame, to: nil)
+      }
       if #available(iOS 11.0, *) {
         return imageView.frame.offsetBy(dx: scrollView.adjustedContentInset.left, dy: scrollView.adjustedContentInset.top)
       } else {
@@ -378,7 +381,6 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
     case .toggleImmersiveMode:
       configuration.nextImmersiveMode()
     case .dismiss:
-      scrollView.zoomToMin(at: .zero)
       uniformDismiss()
     }
   }
