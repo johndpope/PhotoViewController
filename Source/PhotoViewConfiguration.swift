@@ -50,11 +50,9 @@ public struct PhotoViewDismissDirection: OptionSet {
 
 open class PhotoViewConfiguration {
 
-  public static var immersiveModeDidChange: Notification.Name {
-    return Notification.Name(rawValue: "PhotoViewManagerImmersiveModeDidChange")
-  }
+  public static let immersiveModeDidChange: Notification.Name = Notification.Name(rawValue: "PhotoViewConfigurationrImmersiveModeDidChange")
 
-  public var notificationCenter: NotificationCenter
+  public private(set) var notificationCenter: NotificationCenter
 
   public init(notificationCenter: NotificationCenter = .default) {
     self.notificationCenter = notificationCenter
@@ -62,7 +60,7 @@ open class PhotoViewConfiguration {
 
   public private(set) var immersiveMode: PhotoImmersiveMode = .normal {
     didSet {
-      notificationCenter.post(name: PhotoViewConfiguration.immersiveModeDidChange, object: nil)
+      notificationCenter.post(name: PhotoViewConfiguration.immersiveModeDidChange, object: self)
     }
   }
 
@@ -78,14 +76,12 @@ open class PhotoViewConfiguration {
   public var enabledImmersiveMode: [PhotoImmersiveMode] = [.normal, .immersive]
 
   public func nextImmersiveMode() {
-    let future: PhotoImmersiveMode
-    switch immersiveMode {
-    case .normal:
-      future = .immersive
-    case .immersive:
-      future = .normal
-    }
-    if enabledImmersiveMode.contains(future) {
+    precondition(enabledImmersiveMode.count > 0)
+    if enabledImmersiveMode.contains(immersiveMode) {
+      let future = enabledImmersiveMode.nextElement(of: immersiveMode, forward: true, loop: true)!
+      immersiveMode = future
+    } else {
+      let future = enabledImmersiveMode.nextElement(of: enabledImmersiveMode.first!, forward: true, loop: true)!
       immersiveMode = future
     }
   }
@@ -93,12 +89,6 @@ open class PhotoViewConfiguration {
   public var interactiveDismissScaleFactor: CGFloat = 0.5
 
   public var interactiveDismissDirection: PhotoViewDismissDirection = .all
-
-  public func forceSetImmersiveMode(_ state: PhotoImmersiveMode) {
-    if enabledImmersiveMode.contains(state) {
-      immersiveMode = state
-    }
-  }
 
   public func reloadImmersiveMode(_ reset: Bool) {
     let state = reset ? defaultImmersiveMode : immersiveMode
