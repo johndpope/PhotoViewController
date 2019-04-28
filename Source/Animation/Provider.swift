@@ -33,7 +33,7 @@ public struct SmallPhotoViewProvider {
   }
 }
 
-public struct PhotoZoomInProvider {
+public struct ZoomInAnimatedTransitioningProvider {
   public let source: SmallPhotoViewProvider
   public let destionation: LargePhotoViewProvider
   public init(source: SmallPhotoViewProvider, destionation: LargePhotoViewProvider) {
@@ -42,13 +42,11 @@ public struct PhotoZoomInProvider {
   }
 }
 
-extension PhotoZoomInProvider: ZoomAnimatedTransitioningContentProvider {
+extension ZoomInAnimatedTransitioningProvider: ZoomAnimatedTransitioningProvider {
   public var image: UIImage? {
     return source.image
   }
-}
 
-extension PhotoZoomInProvider: ZoomAnimatedTransitioningGeometryProvider {
   public var imageViewFrame: CGRect? {
     return source.frame
   }
@@ -56,17 +54,13 @@ extension PhotoZoomInProvider: ZoomAnimatedTransitioningGeometryProvider {
   public var imageViewContentMode: ViewContentMode {
     return source.contentMode
   }
-}
 
-extension PhotoZoomInProvider: ZoomAnimatedTransitioningLargePhotoViewProvider {
   public var provider: LargePhotoViewProvider {
     return destionation
   }
 }
 
-extension PhotoZoomInProvider: ZoomAnimatedTransitioningProvider {}
-
-public struct PhotoZoomOutProvider {
+public struct ZoomOutAnimatedTransitioningProvider {
   public let source: LargePhotoViewProvider
   public let destionation: SmallPhotoViewProvider
   public init(source: LargePhotoViewProvider, destionation: SmallPhotoViewProvider) {
@@ -75,13 +69,11 @@ public struct PhotoZoomOutProvider {
   }
 }
 
-extension PhotoZoomOutProvider: ZoomAnimatedTransitioningContentProvider {
+extension ZoomOutAnimatedTransitioningProvider: ZoomAnimatedTransitioningProvider {
   public var image: UIImage? {
     return source.currentImage
   }
-}
 
-extension PhotoZoomOutProvider: ZoomAnimatedTransitioningGeometryProvider {
   public var imageViewFrame: CGRect? {
     return destionation.frame
   }
@@ -89,15 +81,11 @@ extension PhotoZoomOutProvider: ZoomAnimatedTransitioningGeometryProvider {
   public var imageViewContentMode: ViewContentMode {
     return destionation.contentMode
   }
-}
 
-extension PhotoZoomOutProvider: ZoomAnimatedTransitioningLargePhotoViewProvider {
   public var provider: LargePhotoViewProvider {
     return source
   }
 }
-
-extension PhotoZoomOutProvider: ZoomAnimatedTransitioningProvider {}
 
 public enum ImageZoomAnimationOption {
   case fallback(springDampingRatio: CGFloat, initialSpringVelocity: CGFloat, options: ViewAnimationOptions)

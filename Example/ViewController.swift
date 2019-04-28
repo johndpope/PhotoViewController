@@ -380,9 +380,9 @@ extension ViewController {
     guard let viewController = viewController as? CustomPhotoPageController else { return nil }
     guard let imageView = currentImageView(direction: .incoming, viewController: viewController) else { return nil }
     let t = ZoomInAnimatedTransitioning(duration: showingInterval,
-                                       option: animationOption(forShowing: true),
-                                       provider: PhotoZoomInProvider(source: SmallPhotoViewProvider(imageView: imageView, image: imageView.image),
-                                                                     destionation: viewController.page!))
+                                        option: animationOption(forShowing: true),
+                                        provider: ZoomInAnimatedTransitioningProvider(source: SmallPhotoViewProvider(imageView: imageView, image: imageView.image),
+                                                                                      destionation: viewController.page!))
     t.delegate = self
     return t
   }
@@ -392,8 +392,8 @@ extension ViewController {
     guard let imageView = currentImageView(direction: .outgoing, viewController: viewController) else { return nil }
     let t = ZoomOutAnimatedTransitioning(duration: dismissInterval,
                                          option: animationOption(forShowing: false),
-                                         provider: PhotoZoomOutProvider(source: viewController.page!,
-                                                                        destionation: SmallPhotoViewProvider(imageView: imageView, image: nil)))
+                                         provider: ZoomOutAnimatedTransitioningProvider(source: viewController.page!,
+                                                                                        destionation: SmallPhotoViewProvider(imageView: imageView, image: nil)))
     t.delegate = self
     t.transferrer = self
     return t
