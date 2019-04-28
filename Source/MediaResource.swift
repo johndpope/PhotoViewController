@@ -43,7 +43,7 @@ open class MediaResource {
   /// - Parameters:
   ///   - identifier: id
   ///   - retrieving: load data
-  public init(type: MediaResourceType = .unspecified, identifier: String, retrieving: @escaping MediaResourceRetrieving) {
+  public init(type: MediaResourceType, identifier: String, retrieving: @escaping MediaResourceRetrieving) {
     self.identifier = identifier
     self.retrieving = retrieving
     self.type = type
