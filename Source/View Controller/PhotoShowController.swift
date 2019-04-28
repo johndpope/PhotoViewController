@@ -602,7 +602,7 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   // MARK: - ImmersiveMode observer
 
   open func addImmersiveModeObserver() {
-    configuration.notificationCenter.addObserver(self, selector: #selector(handleImmersiveModeDidChangeNotification(_:)), name: PhotoViewConfiguration.immersiveModeDidChange, object: nil)
+    configuration.notificationCenter.addObserver(self, selector: #selector(handleImmersiveModeDidChangeNotification(_:)), name: PhotoViewConfiguration.immersiveModeDidChange, object: configuration)
   }
 
   @objc func handleImmersiveModeDidChangeNotification(_ note: Notification) -> Void {
