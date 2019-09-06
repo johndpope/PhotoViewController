@@ -33,6 +33,7 @@ public class ZoomInAnimatedTransitioning: ZoomAnimatedTransitioning {
       }
     }
     guard let fromVC = transitionContext.viewController(forKey: UITransitionContextViewControllerKey.from) else { aborted = true; return }
+    let fromViewContainer = fromVC.view.superview
     guard let toVC = transitionContext.viewController(forKey: UITransitionContextViewControllerKey.to) else { aborted = true; return }
     provider.currentImageViewHidden = true
     delegate?.transitionWillBegin(transitionAnimator: self, transitionContext: transitionContext)
@@ -96,7 +97,7 @@ public class ZoomInAnimatedTransitioning: ZoomAnimatedTransitioning {
         toControlSnapshotView?.removeFromSuperview()
         toVC.view.isHidden = false
         if !transitionContext.transitionWasCancelled {
-          fromVC.view.removeFromSuperview()
+          fromViewContainer?.insertSubview(fromVC.view, at: 0)
         }
         transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
       }
