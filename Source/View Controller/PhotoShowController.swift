@@ -355,15 +355,15 @@ open class PhotoShowController: UIViewController, UIScrollViewDelegate, UIGestur
   }
 
   open func finishInteractiveTransition(_ complete: Bool) -> Void {
-    guard dismissalInteractiveController != nil else { return }
+    guard let dismissalInteractiveController = self.dismissalInteractiveController else { return }
     debuglog("")
     if complete {
-      dismissalInteractiveController?.finish()
+      dismissalInteractiveController.finish()
     } else {
-      dismissalInteractiveController?.cancel()
+      dismissalInteractiveController.cancel()
     }
-    dismissalInteractiveController?.continueAnimation?()
-    dismissalInteractiveController = nil
+    dismissalInteractiveController.continueAnimation?()
+    self.dismissalInteractiveController = nil
     embededScrollView?.isScrollEnabled = true
     scrollView.pinchGestureRecognizer?.isEnabled = true
     scrollView.isUserInteractionEnabled = true
