@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import ObjectiveC.runtime
 
 open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPageViewControllerDelegate, UIPageViewControllerDataSource, LargePhotoViewProvider, ImageZoomForceTouchProvider {
 
@@ -46,12 +47,6 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     }
   }
 
-  open var statusBarStyle: UIStatusBarStyle = .default {
-    didSet {
-      setNeedsStatusBarAppearanceUpdate()
-    }
-  }
-
   public private(set) var isStatusBarHidden: Bool = false {
     didSet {
       setNeedsStatusBarAppearanceUpdate()
@@ -71,6 +66,8 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   open var loop: Bool = true
 
   private var resources__: [T] = []
+  
+  private var assertImplementationInstalled: Bool = true
 
   private let queue: DispatchQueue = DispatchQueue(label: "com.photo.page.controller." + UUID().uuidString)
 
@@ -145,8 +142,6 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     updateImmersiveUI()
     addImmersiveModeObservers()
     addPage()
-    let statusBarStyle = self.statusBarStyle
-    self.statusBarStyle = statusBarStyle
   }
 
   // MARK: - ImmersiveMode
@@ -161,6 +156,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
 
   open func updateImmersiveUI(_ state: PhotoImmersiveMode? = nil) -> Void {
     debuglog("")
+    assert(Thread.isMainThread)
     changePhotoPageBackgroundColor()
     let isNavigationBarHidden: Bool
     switch state ?? configuration.immersiveMode {
@@ -169,17 +165,23 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     case .immersive:
       isNavigationBarHidden = true
     }
-    let block: () -> Void = { [weak self] in
+    let animation: () -> Void = { [weak self] in
       self?.navigationController?.setNavigationBarHidden(isNavigationBarHidden, animated: true)
       self?.isStatusBarHidden = isNavigationBarHidden
     }
-    if !isModalTransition, navigationController == nil {
-      DispatchQueue.global().async { [weak self] in
-        while let strongself = self, strongself.navigationController == nil {}
-        DispatchQueue.main.async(execute: block)
+    animation()
+  }
+  
+  open override func didMove(toParent parent: UIViewController?) {
+    super.didMove(toParent: parent)
+    if !isModalTransition, !assertImplementationInstalled, configuration.checkImplementation {
+      if let parentClass = parent.map({ type(of: $0) }), let parentSuperClass = parent?.superclass {
+        let selector = #selector(UIViewController.didMove(toParent:))
+        let imp1 = class_getMethodImplementation(parentClass, selector)
+        let imp2 = class_getMethodImplementation(parentSuperClass, selector)
+        assert(imp1 != imp2, "You must implementation -didMoveToParentViewController: to call updateImmersiveUI")
+        assertImplementationInstalled = true
       }
-    } else {
-      block()
     }
   }
 
@@ -362,13 +364,8 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   }
 
   // MARK: - UIViewController
-
   open override var prefersStatusBarHidden: Bool {
     return isStatusBarHidden
-  }
-
-  open override var preferredStatusBarStyle: UIStatusBarStyle {
-    return statusBarStyle
   }
 
   open override func preferredContentSizeDidChange(forChildContentContainer container: UIContentContainer) {

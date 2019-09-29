@@ -74,6 +74,8 @@ open class PhotoViewConfiguration {
   public var defaultImmersiveMode: PhotoImmersiveMode = .normal
 
   public var enabledImmersiveMode: [PhotoImmersiveMode] = [.normal, .immersive]
+  
+  public var checkImplementation: Bool = true
 
   public func nextImmersiveMode() {
     precondition(enabledImmersiveMode.count > 0)

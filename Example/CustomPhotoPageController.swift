@@ -105,6 +105,11 @@ class CustomPhotoPageController: UIViewController, ImageZoomForceTouchProvider {
     page?.view.frame = view.bounds
     navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Delete", style: .plain, target: self, action: #selector(deleteCurrentPhoto))
   }
+  
+  override func didMove(toParent parent: UIViewController?) {
+    super.didMove(toParent: parent)
+    page?.updateImmersiveUI()
+  }
 
   @objc func deleteCurrentPhoto() -> Void {
     page?.removeCurrentResource()
@@ -113,11 +118,6 @@ class CustomPhotoPageController: UIViewController, ImageZoomForceTouchProvider {
   override var prefersStatusBarHidden: Bool {
     return page!.prefersStatusBarHidden
   }
-
-  override var preferredStatusBarStyle: UIStatusBarStyle {
-    return page!.preferredStatusBarStyle
-  }
-
   func addPageControl() -> Void {
     let pageControl = UIPageControl(frame: .zero)
     self.pageControl = pageControl
