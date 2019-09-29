@@ -64,6 +64,7 @@ public class ZoomOutAnimatedTransitioning: ZoomAnimatedTransitioning {
 
     guard let fromVC = transitionContext.viewController(forKey: UITransitionContextViewControllerKey.from) else { aborted = true; return }
     guard let toVC = transitionContext.viewController(forKey: UITransitionContextViewControllerKey.to) else { aborted = true; return }
+    let fromViewContainer = fromVC.view.superview
     let toViewContainer = toVC.view.superview
     provider.currentImageViewHidden = true
     delegate?.transitionWillBegin(transitionAnimator: self, transitionContext: transitionContext)
@@ -135,7 +136,9 @@ public class ZoomOutAnimatedTransitioning: ZoomAnimatedTransitioning {
 
         // for status bar
         if let strongContext = transitionContext {
-          if !strongContext.transitionWasCancelled {
+          if strongContext.transitionWasCancelled {
+            fromViewContainer?.addSubview(fromVC.view)
+          } else {
             fromVC.view.removeFromSuperview()
           }
           if strongContext.isInteractive {
@@ -151,9 +154,7 @@ public class ZoomOutAnimatedTransitioning: ZoomAnimatedTransitioning {
       }
       strongself.provider.currentImageViewHidden = false
       strongself.delegate?.transitionDidFinishAnimation(transitionAnimator: strongself, transitionContext: strongContext, finished: !strongContext.transitionWasCancelled)
-      if strongself.provider.isModalTransition && !strongContext.transitionWasCancelled {
-        toViewContainer?.addSubview(toVC.view)
-      }
+      toViewContainer?.addSubview(toVC.view)
     }
 
     if transitionContext.isInteractive {
