@@ -118,6 +118,7 @@ class CustomPhotoPageController: UIViewController, ImageZoomForceTouchProvider {
   override var prefersStatusBarHidden: Bool {
     return page!.prefersStatusBarHidden
   }
+  
   func addPageControl() -> Void {
     let pageControl = UIPageControl(frame: .zero)
     self.pageControl = pageControl
@@ -151,7 +152,7 @@ class CustomPhotoPageController: UIViewController, ImageZoomForceTouchProvider {
       }, UIPreviewAction(title: "Delete", style: .destructive) { [weak self] (_, controller) in
         self?.page?.removeCurrentResource()
         controller.dismiss(animated: true, completion: nil)
-      }];
+      }]
   }
 
 }

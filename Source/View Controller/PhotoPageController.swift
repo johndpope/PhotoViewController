@@ -68,16 +68,22 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   private var resources__: [T] = []
   
   private var assertImplementationInstalled: Bool = true
+  
+  private let lock: NSRecursiveLock = NSRecursiveLock()
 
   private let queue: DispatchQueue = DispatchQueue(label: "com.photo.page.controller." + UUID().uuidString)
 
-  private var resources: [T] {
+  public var resources: [T] {
     set {
+      lock.lock()
+      defer { lock.unlock() }
       queue.sync {
         resources__ = newValue
       }
     }
     get {
+      lock.lock()
+      defer { lock.unlock() }
       return queue.sync {
         return resources__
       }
@@ -285,7 +291,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     tryDeleteResourceHandler?(userIndexPath, successBlock)
   }
 
-  func removeResourceSuccessfully(at indexPath: IndexPath) -> Void {
+  open func removeResourceSuccessfully(at indexPath: IndexPath) -> Void {
     var oldFlatList = resources.allIndexPaths(where: { _ in true }, matchFirst: false)
     #if swift(>=4.2)
     let oldFlatIndex = oldFlatList.firstIndex(of: indexPath)
@@ -326,7 +332,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   }
 
 
-  public func removeCurrentResource() {
+  open func removeCurrentResource() {
     removeResource(at: pagingCurrentIndexPath)
   }
 
