@@ -9,6 +9,27 @@
 import UIKit
 import ObjectiveC.runtime
 
+public protocol PhotoPageControllerDelegate: class {
+  
+  /// delete resource from user's array, required
+  func removeUserResource<T>(controller: PhotoPageController<T>, at indexPath: IndexPath, completion: @escaping (Bool) -> Void) -> Void
+  
+  /// delete resource from page controller's array, optional
+  func removePageResource<T>(controller: PhotoPageController<T>, resources: inout [T], at indexPath: IndexPath) -> MediaResource?
+
+  /// page did scroll
+  func pageDidScroll<T>(controller: PhotoPageController<T>, to indexPath: IndexPath) -> Void
+  
+}
+
+public extension PhotoPageControllerDelegate {
+  
+  func removePageResource<T>(controller: PhotoPageController<T>, resources: inout [T], at indexPath: IndexPath) -> MediaResource? {
+    return resources.removeItemAt(indexPath: indexPath)
+  }
+  
+}
+
 open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPageViewControllerDelegate, UIPageViewControllerDataSource, LargePhotoViewProvider, ImageZoomForceTouchProvider {
 
   public let configuration: PhotoViewConfiguration = PhotoViewConfiguration()
@@ -34,22 +55,22 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   public var userStartIndexPath: IndexPath = IndexPath(index: -1) {
     didSet {
       let pagingStartIndexPath = configuration.pagingIndexPath(form: userStartIndexPath, desiredLength: resources.indexPathLength)
-      assert(!pagingStartIndexPath.isEmpty, "You must set resource array, before setting index")
+      assert(!pagingStartIndexPath.isEmpty, "You must set resource array before setting any index")
       self.pagingStartIndexPath = pagingStartIndexPath
     }
   }
+  
+  /// the length is equal to array's level
+  public private(set) var pagingStartIndexPath: IndexPath = IndexPath(index: -1)
 
   /// the length is not equal to array's level, usually from user UI
   public var userCurrentIndexPath: IndexPath {
     return configuration.userIndexPath(template: userStartIndexPath, form: pagingCurrentIndexPath)
   }
 
-  /// the length is equal to array's level
-  public private(set) var pagingStartIndexPath: IndexPath = IndexPath(index: -1)
-
-  private var pagingCurrentIndexPath: IndexPath = IndexPath(index: -1) {
+  public private(set) var pagingCurrentIndexPath: IndexPath = IndexPath(index: -1) {
     didSet {
-      didScrollToPageHandler?(userCurrentIndexPath)
+      delegate?.pageDidScroll(controller: self, to: userCurrentIndexPath)
     }
   }
 
@@ -59,11 +80,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     }
   }
 
-  open var tryDeleteResourceHandler: ((_ indexPath: IndexPath, _ completion: @escaping (Bool) -> Void) -> Void)?
-
-  open var deleteResourceHandler: ((_ collection: inout [T], _ indexPath: IndexPath) -> MediaResource)?
-
-  open var didScrollToPageHandler: ((_ indexPath: IndexPath) -> Void)?
+  public weak var delegate: PhotoPageControllerDelegate?
 
   public private(set) var navigationOrientation: PageViewControllerNavigationOrientation = .horizontal
 
@@ -271,14 +288,14 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     guard resources.allIndexPaths(where: { _ in true }, matchFirst: false).contains(indexPath) else {
       return
     }
+    guard let delegate = delegate else { return }
     let resource = resources[resource: indexPath]
     guard !resource.removing else {
       return
     }
     resource.removing = true
-    assert(tryDeleteResourceHandler != nil, "you should implement delete handler")
     let userIndexPath = configuration.userIndexPath(template: userStartIndexPath, form: indexPath)
-    let successBlock: (Bool) -> Void = { [weak self] (success) in
+    let completion: (Bool) -> Void = { [weak self] (success) in
       guard let strongself = self else { return }
       if success {
         let newResource = strongself.resources[resource: indexPath]
@@ -291,7 +308,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
         resource.removing = false
       }
     }
-    tryDeleteResourceHandler?(userIndexPath, successBlock)
+    delegate.removeUserResource(controller: self, at: userIndexPath, completion: completion)
   }
 
   open func removeResourceSuccessfully(at indexPath: IndexPath) -> Void {
@@ -301,7 +318,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     #else
     let oldFlatIndex = oldFlatList.index(of: indexPath)
     #endif
-    _ = deleteResourceHandler?(&resources, indexPath) ?? resources.removeItemAt(indexPath: indexPath)
+    _ = delegate?.removePageResource(controller: self, resources: &resources, at: indexPath)
     var newFlatList = resources.allIndexPaths(where: { _ in true }, matchFirst: false)
     let newIndices = Array<Int>(newFlatList.indices)
 

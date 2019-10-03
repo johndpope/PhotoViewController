@@ -20,7 +20,7 @@ extension UIView {
 
 let cornerRadius: CGFloat = 10
 
-class ViewController: UITableViewController {
+class ViewController: UITableViewController, PhotoPageControllerDelegate {
 
   var selectedIndexP: IndexPath?
 
@@ -141,7 +141,8 @@ class ViewController: UITableViewController {
     let customPage = CustomPhotoPageController(modally: modally, navigationOrientation: scrollDirection)
     customPage.page?.resources = datum
     customPage.page?.userStartIndexPath = indexPath
-    customPage.page!.loop = pageLoop
+    customPage.page?.loop = pageLoop
+    customPage.page?.delegate = self
     let configuration = customPage.page!.configuration
     configuration.defaultImmersiveMode = defaultState
     configuration.viewTapAction = viewTapAction
@@ -151,26 +152,34 @@ class ViewController: UITableViewController {
       let cell = tableView.cellForRow(at: indexPath)!
       configuration.hintImage = cell.contentView.firstSubview(ofType: UIImageView.self)?.image
     }
-    customPage.page!.didScrollToPageHandler = { [weak customPage, weak self] idxPath in
-      guard let strongself = self else { return }
-      customPage?.pageControl?.numberOfPages = strongself.datum[idxPath.section].count
-      customPage?.pageControl?.currentPage = idxPath.row
-    }
-    customPage.page!.tryDeleteResourceHandler = { [weak self] idxPath, comp in
-      guard let strongself = self else { return }
-      DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-        let success = Bool.random()
-        if success {
-          strongself.datum.removeItemAt(indexPath: idxPath)
-          strongself.tableView.reloadData()
-        }
-        comp(success)
-      }
-    }
     customPage.view.alpha = 1
     customPage.isForceTouching = previewing
     customPage.hidesBottomBarWhenPushed = true
     return customPage
+  }
+  
+  func removeUserResource<T>(controller: PhotoPageController<T>, at indexPath: IndexPath, completion: @escaping (Bool) -> Void) where T : IndexPathSearchable {
+    let alertController = UIAlertController(title: nil, message: "This action can not be undone", preferredStyle: .alert)
+    let delete = UIAlertAction(title: "Delete", style: .destructive, handler: { (action) in
+      let success = true
+      if success {
+        self.datum.removeItemAt(indexPath: indexPath)
+        self.tableView.reloadData()
+      }
+      completion(success)
+    })
+    alertController.addAction(delete)
+    let cancel = UIAlertAction(title: "Cancel", style: .cancel, handler: { (action) in
+      completion(false)
+    })
+    alertController.addAction(cancel)
+    UIApplication.shared.keyWindow?.rootViewController?.present(alertController, animated: true, completion: nil)
+  }
+  
+  func pageDidScroll<T>(controller: PhotoPageController<T>, to indexPath: IndexPath) where T : IndexPathSearchable {
+    guard let customPage = controller.parent as? CustomPhotoPageController  else { return }
+    customPage.pageControl?.numberOfPages = self.datum[indexPath.section].count
+    customPage.pageControl?.currentPage = indexPath.row
   }
 
   override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
