@@ -99,18 +99,18 @@ open class PhotoViewConfiguration {
     }
   }
 
-  public var pagingIndexPathBlock: ((_ userIndexPath: IndexPath, _ desiredLength: Int) -> IndexPath)?
+  public var convertIndexPathFromUserToPage: ((_ userIndexPath: IndexPath, _ desiredLength: Int) -> IndexPath)?
 
-  public var userIndexPathBlock: (( _ templateIndexPath: IndexPath, _ pagingIndexPath: IndexPath) -> IndexPath)?
+  public var convertIndexPathFromPageToUser: (( _ templateIndexPath: IndexPath, _ pageIndexPath: IndexPath) -> IndexPath)?
 
   public var contentModeBlock: (( _ size: CGSize) -> PhotoViewContentMode?)?
 
-  public func pagingIndexPath(form userIndexPath: IndexPath, desiredLength: Int) -> IndexPath {
-    return pagingIndexPathBlock?(userIndexPath, desiredLength) ?? IndexPath(indexes: userIndexPath.suffix(desiredLength))
+  public func getPageIndexPath(form userIndexPath: IndexPath, desiredLength: Int) -> IndexPath {
+    return convertIndexPathFromUserToPage?(userIndexPath, desiredLength) ?? IndexPath(indexes: userIndexPath.suffix(desiredLength))
   }
 
-  public func userIndexPath(template templateIndexPath: IndexPath, form pagingIndexPath: IndexPath) -> IndexPath {
-    return userIndexPathBlock?(templateIndexPath, pagingIndexPath) ?? templateIndexPath.dropLast(pagingIndexPath.count).appending(pagingIndexPath)
+  public func getUserIndexPath(template templateIndexPath: IndexPath, form pageIndexPath: IndexPath) -> IndexPath {
+    return convertIndexPathFromPageToUser?(templateIndexPath, pageIndexPath) ?? templateIndexPath.dropLast(pageIndexPath.count).appending(pageIndexPath)
   }
 
   public func contenMode(for size: CGSize) -> PhotoViewContentMode? {

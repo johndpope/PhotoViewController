@@ -54,7 +54,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
 
   public var userStartIndexPath: IndexPath = IndexPath(index: -1) {
     didSet {
-      let pagingStartIndexPath = configuration.pagingIndexPath(form: userStartIndexPath, desiredLength: resources.indexPathLength)
+      let pagingStartIndexPath = configuration.getPageIndexPath(form: userStartIndexPath, desiredLength: resources.indexPathLength)
       assert(!pagingStartIndexPath.isEmpty, "You must set resource array before setting any index")
       self.pagingStartIndexPath = pagingStartIndexPath
     }
@@ -65,7 +65,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
 
   /// the length is not equal to array's level, usually from user UI
   public var userCurrentIndexPath: IndexPath {
-    return configuration.userIndexPath(template: userStartIndexPath, form: pagingCurrentIndexPath)
+    return configuration.getUserIndexPath(template: userStartIndexPath, form: pagingCurrentIndexPath)
   }
 
   public private(set) var pagingCurrentIndexPath: IndexPath = IndexPath(index: -1) {
@@ -294,7 +294,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
       return
     }
     resource.removing = true
-    let userIndexPath = configuration.userIndexPath(template: userStartIndexPath, form: indexPath)
+    let userIndexPath = configuration.getUserIndexPath(template: userStartIndexPath, form: indexPath)
     let completion: (Bool) -> Void = { [weak self] (success) in
       guard let strongself = self else { return }
       if success {
