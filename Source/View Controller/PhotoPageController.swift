@@ -31,7 +31,13 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
 
   open var immersiveBackgroundColor: UIColor = UIColor.black
 
-  private var userStartIndexPath: IndexPath = IndexPath(index: -1)
+  public var userStartIndexPath: IndexPath = IndexPath(index: -1) {
+    didSet {
+      let pagingStartIndexPath = configuration.pagingIndexPath(form: userStartIndexPath, desiredLength: resources.indexPathLength)
+      assert(!pagingStartIndexPath.isEmpty, "You must set resource array, before setting index")
+      self.pagingStartIndexPath = pagingStartIndexPath
+    }
+  }
 
   /// the length is not equal to array's level, usually from user UI
   public var userCurrentIndexPath: IndexPath {
@@ -39,11 +45,11 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   }
 
   /// the length is equal to array's level
-  private var pagingStartIndexPath: IndexPath = IndexPath(index: -1)
+  public private(set) var pagingStartIndexPath: IndexPath = IndexPath(index: -1)
 
   private var pagingCurrentIndexPath: IndexPath = IndexPath(index: -1) {
     didSet {
-      didScrollToPageHandler?(configuration.userIndexPath(template: userStartIndexPath, form: pagingCurrentIndexPath))
+      didScrollToPageHandler?(userCurrentIndexPath)
     }
   }
 
@@ -129,13 +135,10 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
 
   // MARK: - init
 
-  public convenience init(isModalTransition: Bool, startIndexPath: IndexPath, resources: [T], navigationOrientation: PageViewControllerNavigationOrientation = .horizontal, interPageSpacing: Double = 10) {
+  public convenience init(isModalTransition: Bool, navigationOrientation: PageViewControllerNavigationOrientation = .horizontal, interPageSpacing: Double = 10) {
     self.init(nibName: nil, bundle: nil)
     self.modalPresentationCapturesStatusBarAppearance = true
     self.isModalTransition = isModalTransition
-    self.resources = resources
-    self.userStartIndexPath = startIndexPath
-    self.pagingStartIndexPath = configuration.pagingIndexPath(form: userStartIndexPath, desiredLength: resources.indexPathLength)
     self.navigationOrientation = navigationOrientation
     self.interPageSpacing = interPageSpacing
   }

@@ -92,9 +92,9 @@ class CustomPhotoPageController: UIViewController, ImageZoomForceTouchProvider {
 
   var page: MyPagingController<[MediaResource]>?
   var pageControl: UIPageControl?
-  convenience init(modally: Bool, startIndex: IndexPath, resources: [[MediaResource]], navigationOrientation: PageViewControllerNavigationOrientation) {
+  convenience init(modally: Bool, navigationOrientation: PageViewControllerNavigationOrientation) {
     self.init(nibName: nil, bundle: nil)
-    page = MyPagingController(isModalTransition: modally, startIndexPath: startIndex, resources: resources, navigationOrientation: navigationOrientation)
+    page = MyPagingController(isModalTransition: modally, navigationOrientation: navigationOrientation)
   }
 
   override func viewDidLoad() {

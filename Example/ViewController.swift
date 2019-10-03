@@ -138,7 +138,9 @@ class ViewController: UITableViewController {
 
   func showController(at indexPath: IndexPath, previewing: Bool) -> CustomPhotoPageController? {
     selectedIndexP = indexPath
-    let customPage = CustomPhotoPageController(modally: modally, startIndex: indexPath, resources: datum, navigationOrientation: scrollDirection)
+    let customPage = CustomPhotoPageController(modally: modally, navigationOrientation: scrollDirection)
+    customPage.page?.resources = datum
+    customPage.page?.userStartIndexPath = indexPath
     customPage.page!.loop = pageLoop
     let configuration = customPage.page!.configuration
     configuration.defaultImmersiveMode = defaultState
