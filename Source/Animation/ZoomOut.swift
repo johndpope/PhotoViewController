@@ -62,39 +62,19 @@ public class ZoomOutAnimatedTransitioning: ZoomAnimatedTransitioning {
       }
     }
 
-    guard let fromVC = transitionContext.viewController(forKey: UITransitionContextViewControllerKey.from) else { aborted = true; return }
     guard let toVC = transitionContext.viewController(forKey: UITransitionContextViewControllerKey.to) else { aborted = true; return }
-    let fromViewContainer = fromVC.view.superview
-    let toViewContainer = toVC.view.superview
-    provider.currentImageViewHidden = true
-    delegate?.transitionWillBegin(transitionAnimator: self, transitionContext: transitionContext)
-
-    defer {
-      if aborted {
-        if provider.isModalTransition {
-          toViewContainer?.addSubview(toVC.view)
-        }
-      }
-    }
-
-    // if view isHidden, then its snapshot View is blank
-    containerView.addSubview(toVC.view)
-    containerView.addSubview(fromVC.view)
-
-    guard let fromSnapshotView = fromVC.snapshotViewOnlyPageView(afterScreenUpdates: true) else { aborted = true; return }
-    guard let toSnapshotView = toVC.view.snapshotView(afterScreenUpdates: true) else { aborted = true; return }
-
     guard let image = image else { aborted = true; return }
     guard let toImageViewFrame = toImageViewFrame else { aborted = true; return }
     guard let fromImageViewFrame = provider.currentImageViewFrame else { aborted = true; return }
+    
+    provider.currentImageViewHidden = true
+    delegate?.transitionWillBegin(transitionAnimator: self, transitionContext: transitionContext)
 
-    fromVC.view.isHidden = false
-    toVC.view.isHidden = false
-    toVC.view.frame = transitionContext.finalFrame(for: toVC)
-
-    containerView.addSubview(toSnapshotView)
-    toSnapshotView.frame = transitionContext.finalFrame(for: toVC)
-    containerView.addSubview(fromSnapshotView)
+    let previousToViewSuperview = toVC.view.superview
+    if previousToViewSuperview == nil {
+      containerView.insertSubview(toVC.view, at: 0)
+      toVC.view.frame = transitionContext.finalFrame(for: toVC)      
+    }
 
     let mockSourceImageView = UIImageView(image: image)
     mockSourceImageView.clipsToBounds = true
@@ -103,19 +83,10 @@ public class ZoomOutAnimatedTransitioning: ZoomAnimatedTransitioning {
     delegate?.transitionWillBeginAnimation(transitionAnimator: self, transitionContext: transitionContext, imageView: mockSourceImageView)
     containerView.addSubview(mockSourceImageView)
 
-    // like a sandwich, top -> bottom: (fromControlSnapshotView, mockSourceImageView, fromSnapshotView)
-    let fromControlSnapshotView = fromVC.snapshotViewExceptPageView(afterScreenUpdates: false)
-    if let fromControlSnapshotView = fromControlSnapshotView {
-      containerView.addSubview(fromControlSnapshotView)
-      fromControlSnapshotView.frame = fromSnapshotView.frame
-    }
-
     interactiveController?.addProgressObserver(self)
 
     let animations: (_ interactive: Bool, _ isCancelled: Bool, _ expectedEndingProgress: CGFloat) -> Void = { [weak self, weak transitionContext] interactive, isCancelled, expectedEndingProgress in
-      fromSnapshotView.alpha = isCancelled ? 1 : (1 - expectedEndingProgress)
-      fromControlSnapshotView?.alpha = isCancelled ? 1 : (1 - expectedEndingProgress)
-      self?.delegate?.transitionUserAnimation(transitionAnimator: self, transitionContext: transitionContext, isInteractive: interactive, isCancelled: isCancelled, progress: (interactive ? expectedEndingProgress : CGFloat(1.0)), imageView: mockSourceImageView)
+      self?.delegate?.transitionUserAnimation(transitionAnimator: self, transitionContext: transitionContext, isInteractive: interactive, isCancelled: isCancelled, progress: (interactive ? expectedEndingProgress : CGFloat(isCancelled ? 0 : 1)), imageView: mockSourceImageView)
       if !interactive {
         mockSourceImageView.transform = .identity
         mockSourceImageView.frame = isCancelled ? fromImageViewFrame : toImageViewFrame
@@ -124,37 +95,22 @@ public class ZoomOutAnimatedTransitioning: ZoomAnimatedTransitioning {
       }
     }
 
-    let completion: () -> Void = { [weak self, weak transitionContext, weak containerView] in
+    let completion: () -> Void = { [weak self, weak transitionContext] in
       guard let strongself = self else { return }
       guard let strongContext = transitionContext else { return }
-      defer {
-        strongself.transitionIsCompleted = !strongContext.transitionWasCancelled
-        toSnapshotView.removeFromSuperview()
-        fromSnapshotView.removeFromSuperview()
-        mockSourceImageView.removeFromSuperview()
-        fromControlSnapshotView?.removeFromSuperview()
-
-        // for status bar
-        if let strongContext = transitionContext {
-          if strongContext.transitionWasCancelled {
-            fromViewContainer?.addSubview(fromVC.view)
-          } else {
-            fromVC.view.removeFromSuperview()
-          }
-          if strongContext.isInteractive {
-            if strongContext.transitionWasCancelled {
-              strongContext.cancelInteractiveTransition()
-            } else {
-              strongContext.finishInteractiveTransition()
-            }
-          }
-          strongContext.completeTransition(!strongContext.transitionWasCancelled)
-          strongself.provider.configuration.reloadImmersiveMode(!strongContext.transitionWasCancelled)
-        }
-      }
       strongself.provider.currentImageViewHidden = false
       strongself.delegate?.transitionDidFinishAnimation(transitionAnimator: strongself, transitionContext: strongContext, finished: !strongContext.transitionWasCancelled)
-      toViewContainer?.addSubview(toVC.view)
+      strongself.transitionIsCompleted = !strongContext.transitionWasCancelled
+      mockSourceImageView.removeFromSuperview()
+      if strongContext.isInteractive {
+        if strongContext.transitionWasCancelled {
+          strongContext.cancelInteractiveTransition()
+        } else {
+          strongContext.finishInteractiveTransition()
+        }
+      }
+      strongContext.completeTransition(!strongContext.transitionWasCancelled)
+      strongself.provider.configuration.reloadImmersiveMode(!strongContext.transitionWasCancelled)
     }
 
     if transitionContext.isInteractive {

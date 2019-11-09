@@ -449,6 +449,8 @@ extension ViewController: ZoomAnimatedTransitioningDelegate {
     case .incoming:
       imageView.clipsToBounds = true
       imageView.layer.cornerRadius = cornerRadius
+      guard let viewController = transitionContext.viewController(forKey: .to) else { return }
+      viewController.view.alpha = 0
     case .outgoing:
       imageView.clipsToBounds = true
       imageView.layer.cornerRadius = 0
@@ -459,10 +461,12 @@ extension ViewController: ZoomAnimatedTransitioningDelegate {
     switch transitionAnimator.direction {
     case .incoming:
       guard let viewController = transitionContext.viewController(forKey: .to) else { return }
+      viewController.view.alpha = 1
       guard let imageView = currentImageView(direction: transitionAnimator.direction, viewController: viewController) else { return }
       imageView.isHidden = false
     case .outgoing:
       guard let viewController = transitionContext.viewController(forKey: .from) else { return }
+      viewController.view.alpha = 1
       guard let imageView = currentImageView(direction: transitionAnimator.direction, viewController: viewController) else { return }
       imageView.isHidden = false
     }
@@ -472,13 +476,16 @@ extension ViewController: ZoomAnimatedTransitioningDelegate {
     guard let transition = transitionAnimator else { return }
     switch transition.direction {
     case .incoming:
-      //FIXME: cornerRadius = 0, flick the screen, when using local photo on iOS 11
-      // imageView.layer.cornerRadius = 0
-      imageView.layer.cornerRadius = 1
+      imageView.clipsToBounds = true
+      imageView.layer.cornerRadius = 0
+      guard let viewController = transitionContext?.viewController(forKey: .to) else { return }
+      viewController.view.alpha = progress ?? 1
     case .outgoing:
-      if !isInteractive {
-        imageView.layer.cornerRadius = isCancelled ? 0 : cornerRadius
-      }
+      let progress = progress ?? 1
+      imageView.clipsToBounds = true
+      imageView.layer.cornerRadius = progress * cornerRadius
+      guard let viewController = transitionContext?.viewController(forKey: .from) else { return }
+      viewController.view.alpha = 1 - progress
     }
   }
 }

@@ -68,7 +68,12 @@ class MyPagingController<T: IndexPathSearchable>: PhotoPageController<T> {
   override func photoShow(modally: Bool, resource: MediaResource) -> UIViewController {
     return MyPhotoShowController(isModalTransition: modally, resource: resource, configuration: configuration)
   }
-
+  
+  override func updateImmersiveUI(_ state: PhotoImmersiveMode? = nil) -> Void {
+    super.updateImmersiveUI(state)
+    self.navigationController?.setNavigationBarHidden(self.isStatusBarHidden, animated: true)
+  }
+  
 }
 
 

@@ -184,18 +184,14 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     debuglog("")
     assert(Thread.isMainThread)
     changePhotoPageBackgroundColor()
-    let isNavigationBarHidden: Bool
+    let isFullScreen: Bool
     switch state ?? configuration.immersiveMode {
     case .normal:
-      isNavigationBarHidden = false
+      isFullScreen = false
     case .immersive:
-      isNavigationBarHidden = true
+      isFullScreen = true
     }
-    let animation: () -> Void = { [weak self] in
-      self?.navigationController?.setNavigationBarHidden(isNavigationBarHidden, animated: true)
-      self?.isStatusBarHidden = isNavigationBarHidden
-    }
-    animation()
+    self.isStatusBarHidden = isFullScreen
   }
   
   open override func didMove(toParent parent: UIViewController?) {
