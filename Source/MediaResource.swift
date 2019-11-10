@@ -17,24 +17,52 @@ public enum MediaResourceType {
   case unspecified
 }
 
-public enum MediaResourceDealing {
+public enum MediaResourceView {
   case image(UIImageView?)
   @available(iOS 9.1, *)
   case livePhoto(PHLivePhotoView?, UIImageView?)
   case custom(UIView?, UIImageView?)
+  var imageView: UIImageView? {
+    switch self {
+    case let .image(v):
+      return v
+    case let .livePhoto(_, v):
+      return v
+    case let .custom(_, v):
+      return v
+    }
+  }
+  @available(iOS 9.1, *)
+  var livePhotoView: PHLivePhotoView? {
+    switch self {
+    case let .livePhoto(v, _):
+      return v
+    default:
+      return nil
+    }
+  }
+  var customView: UIView? {
+    switch self {
+    case let .custom(v, _):
+      return v
+    default:
+      return nil
+    }
+  }
 }
 
-public typealias MediaResourceRetrieving = (MediaResourceDealing) -> CGSize?
+public typealias MediaResourceFetching = (MediaResourceView, MediaResource) -> CGSize?
 
 open class MediaResource {
+  public let type: MediaResourceType
   /// for hash, like finding index
-  open private(set) var identifier: String
+  public let identifier: String
   /// load data
-  open private(set) var retrieving: MediaResourceRetrieving
+  private var fetching: MediaResourceFetching
+  
+  public var display: (MediaResourceView) -> CGSize? { return { [unowned self] in self.fetching($0, self) } }
 
   open private(set) var contentSize: CGSize = .zero
-
-  open private(set) var type: MediaResourceType
 
   open var removing: Bool = false
 
@@ -42,10 +70,10 @@ open class MediaResource {
   ///
   /// - Parameters:
   ///   - identifier: id
-  ///   - retrieving: load data
-  public init(type: MediaResourceType, identifier: String, retrieving: @escaping MediaResourceRetrieving) {
+  ///   - fetching: load data
+  public init(type: MediaResourceType, identifier: String, fetching: @escaping MediaResourceFetching) {
     self.identifier = identifier
-    self.retrieving = retrieving
+    self.fetching = fetching
     self.type = type
   }
 
@@ -56,15 +84,10 @@ open class MediaResource {
   ///   - identifier: id
   ///   - setImageBlock: load data
   public convenience init(setImageBlock: @escaping ((UIImageView?) -> Void)) {
-    self.init(type: .image, identifier: UUID().uuidString, retrieving: {
-      switch $0 {
-      case .image(let imageView):
-        setImageBlock(imageView)
-      default:
-        break
-      }
+    self.init(type: .image, identifier: UUID().uuidString) { (view, _) in
+      setImageBlock(view.imageView)
       return nil
-    })
+    }
   }
 
   /// init
@@ -74,23 +97,16 @@ open class MediaResource {
   ///   - setLivePhotoBlock: load data, set placeholder
   @available(iOS 9.1, *)
   public convenience init(setLivePhotoBlock: @escaping ((PHLivePhotoView?, UIImageView?) -> CGSize)) {
-    self.init(type: .livePhoto, identifier: UUID().uuidString, retrieving: {
-      switch $0 {
-      case let .livePhoto(livePhotView, imageView):
-        let size = setLivePhotoBlock(livePhotView, imageView)
-        return size
-      default:
-        break
-      }
-      return .zero
-    })
+    self.init(type: .livePhoto, identifier: UUID().uuidString) { (view, _) in
+      return setLivePhotoBlock(view.livePhotoView, view.imageView)
+    }
   }
 
   /// display
   ///
   /// - Parameter imageView: imageView
-  open func display(inImageView imageView: UIImageView?) {
-    _ = retrieving(.image(imageView))
+  open func displayImage(inImageView imageView: UIImageView?) {
+    _ = display(.image(imageView))
   }
 
   @available(iOS 9.1, *)
@@ -100,7 +116,7 @@ open class MediaResource {
   ///   - livePhotView: livePhotView
   ///   - imageView: imageView, for placeholder
   open func displayLivePhoto(inLivePhotView livePhotView: PHLivePhotoView?, inImageView imageView: UIImageView?) {
-    self.contentSize = retrieving(.livePhoto(livePhotView, imageView)) ?? .zero
+    self.contentSize = display(.livePhoto(livePhotView, imageView)) ?? .zero
   }
 
 }

@@ -113,13 +113,13 @@ class ViewController: UITableViewController, PhotoPageControllerDelegate {
     let resource = datum[indexPath.section][indexPath.row]
     switch resource.type {
     case .image:
-      resource.display(inImageView: imageView)
+      resource.displayImage(inImageView: imageView)
     case .livePhoto:
       if #available(iOS 9.1, *) {
         resource.displayLivePhoto(inLivePhotView: nil, inImageView: imageView)
       }
     case .gif:
-      _ = resource.retrieving(.custom(nil, imageView))
+      _ = resource.display(.custom(nil, imageView))
     default:
       break
     }
@@ -139,13 +139,11 @@ class ViewController: UITableViewController, PhotoPageControllerDelegate {
   func showController(at indexPath: IndexPath, previewing: Bool) -> CustomPhotoPageController? {
     selectedIndexP = indexPath
     let customPage = CustomPhotoPageController(modally: modally, navigationOrientation: scrollDirection)
-    customPage.page?.resources = datum
+    customPage.page?.sequence = datum
     customPage.page?.userStartIndexPath = indexPath
     customPage.page?.loop = pageLoop
     customPage.page?.delegate = self
     let configuration = customPage.page!.configuration
-    configuration.defaultImmersiveMode = defaultState
-    configuration.viewTapAction = viewTapAction
     configuration.interactiveDismissDirection = panDirection
     configuration.interactiveDismissScaleFactor = panScale
     if previewing {
@@ -158,12 +156,12 @@ class ViewController: UITableViewController, PhotoPageControllerDelegate {
     return customPage
   }
   
-  func removeUserResource<T>(controller: PhotoPageController<T>, at indexPath: IndexPath, completion: @escaping (Bool) -> Void) where T : IndexPathSearchable {
+  func removeUserResource<T>(controller: PhotoPageController<T>, at indexPath: IndexPath, completion: @escaping (Bool) -> Void) where T : ResourceSequence {
     let alertController = UIAlertController(title: nil, message: "This action can not be undone", preferredStyle: .alert)
     let delete = UIAlertAction(title: "Delete", style: .destructive, handler: { (action) in
       let success = true
       if success {
-        self.datum.removeItemAt(indexPath: indexPath)
+        self.datum[indexPath.section].remove(at: indexPath.row)
         self.tableView.reloadData()
       }
       completion(success)
@@ -176,7 +174,7 @@ class ViewController: UITableViewController, PhotoPageControllerDelegate {
     UIApplication.shared.keyWindow?.rootViewController?.present(alertController, animated: true, completion: nil)
   }
   
-  func pageDidScroll<T>(controller: PhotoPageController<T>, to indexPath: IndexPath) where T : IndexPathSearchable {
+  func pageDidScroll<T>(controller: PhotoPageController<T>, to indexPath: IndexPath) where T : ResourceSequence {
     guard let customPage = controller.parent as? CustomPhotoPageController  else { return }
     customPage.pageControl?.numberOfPages = self.datum[indexPath.section].count
     customPage.pageControl?.currentPage = indexPath.row
@@ -240,14 +238,6 @@ extension ViewController: UIViewControllerPreviewingDelegate {
 
 // MARK: - config
 extension ViewController {
-
-  var viewTapAction: PhotoViewTapAction {
-    return ExampleConfigManager.shared.viewTap.currentValue as! PhotoViewTapAction
-  }
-
-  var defaultState: PhotoImmersiveMode {
-    return ExampleConfigManager.shared.defaultState.currentValue as! PhotoImmersiveMode
-  }
 
   var modally: Bool {
     return ExampleConfigManager.shared.transitionModally.currentValue as! Bool
@@ -585,8 +575,8 @@ extension ViewController: UIImagePickerControllerDelegate, UINavigationControlle
 
     if type == kUTTypeImage as String {
       if let url = url, url.absoluteString.uppercased().contains("GIF"), let asset = asset {
-        datum[0].append(MediaResource(type: .gif, identifier: UUID().uuidString, retrieving: {
-          switch $0 {
+        datum[0].append(MediaResource(type: .gif, identifier: UUID().uuidString) { (view, _) in
+          switch view {
           case let .custom(gifView, imageView):
             PHImageManager.default().requestImageData(for: asset, options: nil, resultHandler: { (data, _, _, _) in
               let fl = FLAnimatedImage(gifData: data!)!
@@ -599,7 +589,7 @@ extension ViewController: UIImagePickerControllerDelegate, UINavigationControlle
             break
           }
           return nil
-        }))
+        })
         return
       }
       if let url = url {

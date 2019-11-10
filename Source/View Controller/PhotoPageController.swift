@@ -7,30 +7,23 @@
 //
 
 import UIKit
-import ObjectiveC.runtime
 
 public protocol PhotoPageControllerDelegate: class {
   
   /// delete resource from user's array, required
   func removeUserResource<T>(controller: PhotoPageController<T>, at indexPath: IndexPath, completion: @escaping (Bool) -> Void) -> Void
   
-  /// delete resource from page controller's array, optional
-  func removePageResource<T>(controller: PhotoPageController<T>, resources: inout [T], at indexPath: IndexPath) -> MediaResource?
-
   /// page did scroll
   func pageDidScroll<T>(controller: PhotoPageController<T>, to indexPath: IndexPath) -> Void
   
 }
 
 public extension PhotoPageControllerDelegate {
-  
-  func removePageResource<T>(controller: PhotoPageController<T>, resources: inout [T], at indexPath: IndexPath) -> MediaResource? {
-    return resources.removeItemAt(indexPath: indexPath)
-  }
-  
+  func removeUserResource<T>(controller: PhotoPageController<T>, at indexPath: IndexPath, completion: @escaping (Bool) -> Void) -> Void {}
+  func pageDidScroll<T>(controller: PhotoPageController<T>, to indexPath: IndexPath) -> Void {}
 }
 
-open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPageViewControllerDelegate, UIPageViewControllerDataSource, LargePhotoViewProvider, ImageZoomForceTouchProvider {
+open class PhotoPageController<T: ResourceSequence>: UIViewController, UIPageViewControllerDelegate, UIPageViewControllerDataSource, LargePhotoViewProvider, ImageZoomForceTouchProvider {
 
   public let configuration: PhotoViewConfiguration = PhotoViewConfiguration()
 
@@ -54,7 +47,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
 
   public var userStartIndexPath: IndexPath = IndexPath(index: -1) {
     didSet {
-      let pagingStartIndexPath = configuration.getPageIndexPath(form: userStartIndexPath, desiredLength: resources.indexPathLength)
+      let pagingStartIndexPath = configuration.getPageIndexPath(form: userStartIndexPath, desiredLength: T.indexPathLength)
       assert(!pagingStartIndexPath.isEmpty, "You must set resource array before setting any index")
       self.pagingStartIndexPath = pagingStartIndexPath
     }
@@ -74,7 +67,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     }
   }
 
-  public private(set) var isStatusBarHidden: Bool = false {
+  open var isStatusBarHidden: Bool = false {
     didSet {
       setNeedsStatusBarAppearanceUpdate()
     }
@@ -87,31 +80,8 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   public private(set) var interPageSpacing: Double = 0
 
   open var loop: Bool = true
-
-  private var resources__: [T] = []
-  
-  private var assertImplementationInstalled: Bool = true
-  
-  private let lock: NSRecursiveLock = NSRecursiveLock()
-
-  private let queue: DispatchQueue = DispatchQueue(label: "com.photo.page.controller." + UUID().uuidString)
-
-  public var resources: [T] {
-    set {
-      lock.lock()
-      defer { lock.unlock() }
-      queue.sync {
-        resources__ = newValue
-      }
-    }
-    get {
-      lock.lock()
-      defer { lock.unlock() }
-      return queue.sync {
-        return resources__
-      }
-    }
-  }
+    
+  open var sequence: T!
 
   public var currentImageViewHidden: Bool {
     set {
@@ -148,7 +118,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   let interPageSpacingKey = UIPageViewControllerOptionInterPageSpacingKey
   #endif
 
-  private lazy var pageController = UIPageViewController(transitionStyle: PageViewControllerTransitionStyle.scroll, navigationOrientation: navigationOrientation, options: [interPageSpacingKey: NSNumber(value: interPageSpacing)])
+  public private(set) lazy var pageController = UIPageViewController(transitionStyle: PageViewControllerTransitionStyle.scroll, navigationOrientation: navigationOrientation, options: [interPageSpacingKey: NSNumber(value: interPageSpacing)])
 
   // MARK: - init
 
@@ -164,56 +134,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
 
   override open func viewDidLoad() {
     super.viewDidLoad()
-    configuration.reloadImmersiveMode(true)
-    updateImmersiveUI()
-    addImmersiveModeObservers()
     addPage()
-  }
-
-  // MARK: - ImmersiveMode
-
-  open func addImmersiveModeObservers() -> Void {
-    configuration.notificationCenter.addObserver(self, selector: #selector(handleImmersiveModeDidChangeNotification(_:)), name: PhotoViewConfiguration.immersiveModeDidChange, object: configuration)
-  }
-
-  @objc func handleImmersiveModeDidChangeNotification(_ note: Notification) -> Void {
-    updateImmersiveUI()
-  }
-
-  open func updateImmersiveUI(_ state: PhotoImmersiveMode? = nil) -> Void {
-    debuglog("")
-    assert(Thread.isMainThread)
-    changePhotoPageBackgroundColor()
-    let isFullScreen: Bool
-    switch state ?? configuration.immersiveMode {
-    case .normal:
-      isFullScreen = false
-    case .immersive:
-      isFullScreen = true
-    }
-    self.isStatusBarHidden = isFullScreen
-  }
-  
-  open override func didMove(toParent parent: UIViewController?) {
-    super.didMove(toParent: parent)
-    if !isModalTransition, !assertImplementationInstalled, configuration.checkImplementation {
-      if let parentClass = parent.map({ type(of: $0) }), let parentSuperClass = parent?.superclass {
-        let selector = #selector(UIViewController.didMove(toParent:))
-        let imp1 = class_getMethodImplementation(parentClass, selector)
-        let imp2 = class_getMethodImplementation(parentSuperClass, selector)
-        assert(imp1 != imp2, "You must implementation -didMoveToParentViewController: to call updateImmersiveUI")
-        assertImplementationInstalled = true
-      }
-    }
-  }
-
-  open func changePhotoPageBackgroundColor() -> Void {
-    switch configuration.immersiveMode {
-    case .immersive:
-      self.view.backgroundColor = immersiveBackgroundColor
-    case .normal:
-      self.view.backgroundColor = normalBackgroundColor
-    }
   }
 
   // MARK: - Add UIPageViewController
@@ -244,7 +165,7 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
 
   open func scrollTo(page: IndexPath, forward: Bool, animated: Bool = false) -> Void {
     pagingCurrentIndexPath = page
-    pageController.setViewControllers([photoShow(modally: isModalTransition, resource: resources[resource: page])], direction: forward ? .forward : .reverse, animated: animated, completion: nil)
+    pageController.setViewControllers([photoShow(modally: isModalTransition, resource: sequence[page])], direction: forward ? .forward : .reverse, animated: animated, completion: nil)
   }
 
   // MARK: - single photo
@@ -255,9 +176,9 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
 
   // MARK: - get index
 
-  open func indexOf(viewController: UIViewController) -> IndexPath? {
+  open func indexPathFor(_ viewController: UIViewController) -> IndexPath? {
     guard let viewController = viewController as? PhotoShowController else { return nil }
-    return resources.firstIndexPath(where: { $0 == viewController.resource })
+    return sequence.filter(where: { $0 == viewController.resource }).first
   }
 
   // MARK: - embed in parent controller
@@ -281,11 +202,11 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   // MARK: - delete
 
   open func removeResource(at indexPath: IndexPath) -> Void {
-    guard resources.allIndexPaths(where: { _ in true }, matchFirst: false).contains(indexPath) else {
+    guard sequence.filter(where: { _ in true }).contains(indexPath) else {
       return
     }
     guard let delegate = delegate else { return }
-    let resource = resources[resource: indexPath]
+    let resource = sequence[indexPath]
     guard !resource.removing else {
       return
     }
@@ -294,10 +215,10 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
     let completion: (Bool) -> Void = { [weak self] (success) in
       guard let strongself = self else { return }
       if success {
-        let newResource = strongself.resources[resource: indexPath]
+        let newResource = strongself.sequence[indexPath]
         if newResource == resource {
           strongself.removeResourceSuccessfully(at: indexPath)
-        } else if let newIndexPath = strongself.resources.allIndexPaths(where: { $0 == resource }, matchFirst: true).first {
+        } else if let newIndexPath = strongself.sequence.filter(where: { $0 == resource }).first {
           strongself.removeResourceSuccessfully(at: newIndexPath)
         }
       } else {
@@ -308,14 +229,14 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
   }
 
   open func removeResourceSuccessfully(at indexPath: IndexPath) -> Void {
-    var oldFlatList = resources.allIndexPaths(where: { _ in true }, matchFirst: false)
+    var oldFlatList = sequence.filter(where: { _ in true })
     #if swift(>=4.2)
     let oldFlatIndex = oldFlatList.firstIndex(of: indexPath)
     #else
     let oldFlatIndex = oldFlatList.index(of: indexPath)
     #endif
-    _ = delegate?.removePageResource(controller: self, resources: &resources, at: indexPath)
-    var newFlatList = resources.allIndexPaths(where: { _ in true }, matchFirst: false)
+    _ = sequence.remove(at: indexPath)
+    var newFlatList = sequence.filter(where: { _ in true })
     let newIndices = Array<Int>(newFlatList.indices)
 
     var noResource: Bool = false
@@ -355,33 +276,33 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
 
   // MARK: - UIPageViewControllerDataSource
 
-  public func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
-    guard let index = indexOf(viewController: viewController) else { return nil }
-    guard let previousIndex = resources.nextIndexPath(of: index, forward: false, loop: loop) else { return nil }
-    debuglog("moving to page \(previousIndex)")
-    return photoShow(modally: isModalTransition, resource: resources[resource: previousIndex])
+  open func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
+    guard let indexPath = indexPathFor(viewController) else { return nil }
+    guard let previousIndexPath = sequence.indexPath(before: indexPath, loop: loop) else { return nil }
+    debuglog("moving to page \(previousIndexPath)")
+    return photoShow(modally: isModalTransition, resource: sequence[previousIndexPath])
   }
 
-  public func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
-    guard let index = indexOf(viewController: viewController) else { return nil }
-    guard let nextIndex = resources.nextIndexPath(of: index, forward: true, loop: loop) else { return nil }
-    debuglog("moving to page \(nextIndex)")
-    return photoShow(modally: isModalTransition, resource: resources[resource: nextIndex])
+  open func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
+    guard let indexPath = indexPathFor(viewController) else { return nil }
+    guard let nextIndexPath = sequence.indexPath(after: indexPath, loop: loop) else { return nil }
+    debuglog("moving to page \(nextIndexPath)")
+    return photoShow(modally: isModalTransition, resource: sequence[nextIndexPath])
   }
 
   // MARK: - UIPageViewControllerDelegate
 
-  public func pageViewController(_ pageViewController: UIPageViewController, didFinishAnimating finished: Bool, previousViewControllers: [UIViewController], transitionCompleted completed: Bool) {
-    if let viewController = currentPhotoViewController, let index = indexOf(viewController: viewController) {
-      pagingCurrentIndexPath = index
+  open func pageViewController(_ pageViewController: UIPageViewController, didFinishAnimating finished: Bool, previousViewControllers: [UIViewController], transitionCompleted completed: Bool) {
+    if let viewController = currentPhotoViewController, let indexPath = indexPathFor(viewController) {
+      pagingCurrentIndexPath = indexPath
     }
   }
 
-  public func pageViewControllerSupportedInterfaceOrientations(_ pageViewController: UIPageViewController) -> UIInterfaceOrientationMask {
+  open func pageViewControllerSupportedInterfaceOrientations(_ pageViewController: UIPageViewController) -> UIInterfaceOrientationMask {
     return currentPhotoViewController?.supportedInterfaceOrientations ?? supportedInterfaceOrientations
   }
 
-  public func pageViewControllerPreferredInterfaceOrientationForPresentation(_ pageViewController: UIPageViewController) -> UIInterfaceOrientation {
+  open func pageViewControllerPreferredInterfaceOrientationForPresentation(_ pageViewController: UIPageViewController) -> UIInterfaceOrientation {
     return currentPhotoViewController?.preferredInterfaceOrientationForPresentation ?? preferredInterfaceOrientationForPresentation
   }
 
@@ -405,6 +326,8 @@ open class PhotoPageController<T: IndexPathSearchable>: UIViewController, UIPage
 
 }
 
-open class PhotoPage1DController: PhotoPageController<MediaResource> {}
+open class PhotoPageSingleController: PhotoPageController<MediaResource> {}
 
-open class PhotoPage2DController: PhotoPageController<[MediaResource]> {}
+open class PhotoPage1DController: PhotoPageController<[MediaResource]> {}
+
+open class PhotoPage2DController: PhotoPageController<[[MediaResource]]> {}

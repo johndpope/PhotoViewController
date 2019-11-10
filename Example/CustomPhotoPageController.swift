@@ -31,7 +31,7 @@ class MyPhotoShowController: PhotoShowController {
   }
 
   override func loadGIFResource() {
-    _ = resource.retrieving(.custom(gifView, imageView))
+    _ = resource.display(.custom(gifView, imageView))
   }
 
 
@@ -50,28 +50,13 @@ class MyPhotoShowController: PhotoShowController {
     return false
   }
 
-  override func updateImmersiveUI(_ state: PhotoImmersiveMode?) {
-    super.updateImmersiveUI(state)
-    if resource.type ~= .gif {
-      let color = (state ?? configuration.immersiveMode) ~= .normal ? UIColor.white : UIColor.black
-      gifView.stopAnimating()
-      gifView.backgroundColor = color
-      gifView.startAnimating()
-    }
-  }
-
 }
 
 /// mypage
-class MyPagingController<T: IndexPathSearchable>: PhotoPageController<T> {
+class MyPagingController: PhotoPage2DController {
 
   override func photoShow(modally: Bool, resource: MediaResource) -> UIViewController {
     return MyPhotoShowController(isModalTransition: modally, resource: resource, configuration: configuration)
-  }
-  
-  override func updateImmersiveUI(_ state: PhotoImmersiveMode? = nil) -> Void {
-    super.updateImmersiveUI(state)
-    self.navigationController?.setNavigationBarHidden(self.isStatusBarHidden, animated: true)
   }
   
 }
@@ -95,7 +80,7 @@ class CustomPhotoPageController: UIViewController, ImageZoomForceTouchProvider {
     super.preferredContentSizeDidChange(forChildContentContainer: container)
   }
 
-  var page: MyPagingController<[MediaResource]>?
+  var page: MyPagingController?
   var pageControl: UIPageControl?
   convenience init(modally: Bool, navigationOrientation: PageViewControllerNavigationOrientation) {
     self.init(nibName: nil, bundle: nil)
@@ -108,12 +93,8 @@ class CustomPhotoPageController: UIViewController, ImageZoomForceTouchProvider {
     page?.embed(in: self)
     view.insertSubview(page!.view, at: 0)
     page?.view.frame = view.bounds
+    page?.view.backgroundColor = UIColor.white
     navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Delete", style: .plain, target: self, action: #selector(deleteCurrentPhoto))
-  }
-  
-  override func didMove(toParent parent: UIViewController?) {
-    super.didMove(toParent: parent)
-    page?.updateImmersiveUI()
   }
 
   @objc func deleteCurrentPhoto() -> Void {

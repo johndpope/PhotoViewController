@@ -51,8 +51,6 @@ class ExampleConfigManager {
                                            scrollDirection,
                                            panDirection,
                                            panScale,
-                                           viewTap,
-                                           defaultState,
                                            iOS10Only,
                                            iOS10Spring,
                                            ]
@@ -70,8 +68,6 @@ class ExampleConfigManager {
   var dismissCurve: ExampleConfigWrapper = ExampleConfigWrapper(name: "dismissCurve", availables: [.curveEaseInOut, .curveEaseIn, .curveEaseOut, .curveLinear] as [ViewAnimationOptions], availableStrings: ["EaseInOut", "EaseIn", "EaseOut", "Linear"])
   var iOS10Only: ExampleConfigWrapper = ExampleConfigWrapper(name: "iOS10+ Only", availables: [false, true])
   var iOS10Spring: ExampleConfigWrapper = ExampleConfigWrapper(name: "iOS10+ Spring", availables: [false, true])
-  var viewTap: ExampleConfigWrapper = ExampleConfigWrapper(name: "viewTap", availables: [.toggleImmersiveMode, .dismiss] as [PhotoViewTapAction])
-  var defaultState: ExampleConfigWrapper = ExampleConfigWrapper(name: "defaultState", availables: [.normal, .immersive] as [PhotoImmersiveMode])
 
 }
 

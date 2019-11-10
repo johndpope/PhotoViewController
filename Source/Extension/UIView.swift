@@ -10,10 +10,10 @@ import UIKit
 // MARK: - Auto Layout
 
 @available(iOS 9.0, *)
-func __addConstraint<R>(fromView: UIView?, toView: UIView?, getAnchor: (UIView) -> NSLayoutAnchor<R>) {
+func __addConstraint<A, L: NSLayoutAnchor<A>>(fromView: UIView?, toView: UIView?, getAnchor: KeyPath<UIView, L>) {
   guard let view1 = fromView else { return }
   guard let view2 = toView else { return }
-  getAnchor(view1).constraint(equalTo: getAnchor(view2)).isActive = true
+  view1[keyPath: getAnchor].constraint(equalTo: view2[keyPath: getAnchor]).isActive = true
 }
 
 
@@ -27,10 +27,10 @@ extension UIView {
 
   func inset(inView otherView: UIView) -> Void {
     if #available(iOS 9.0, *) {
-      __addConstraint(fromView: self, toView: otherView, getAnchor: { $0.topAnchor })
-      __addConstraint(fromView: self, toView: otherView, getAnchor: { $0.bottomAnchor })
-      __addConstraint(fromView: self, toView: otherView, getAnchor: { $0.leftAnchor })
-      __addConstraint(fromView: self, toView: otherView, getAnchor: { $0.rightAnchor })
+      __addConstraint(fromView: self, toView: otherView, getAnchor: \.topAnchor)
+      __addConstraint(fromView: self, toView: otherView, getAnchor: \.bottomAnchor)
+      __addConstraint(fromView: self, toView: otherView, getAnchor: \.leftAnchor)
+      __addConstraint(fromView: self, toView: otherView, getAnchor: \.rightAnchor)
     } else {
       __addConstraint(fromView: self, toView: otherView, attribute: .top)
       __addConstraint(fromView: self, toView: otherView, attribute: .bottom)

@@ -110,7 +110,6 @@ public class ZoomOutAnimatedTransitioning: ZoomAnimatedTransitioning {
         }
       }
       strongContext.completeTransition(!strongContext.transitionWasCancelled)
-      strongself.provider.configuration.reloadImmersiveMode(!strongContext.transitionWasCancelled)
     }
 
     if transitionContext.isInteractive {

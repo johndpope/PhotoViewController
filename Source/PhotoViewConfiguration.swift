@@ -9,16 +9,6 @@
 import UIKit
 import AVFoundation.AVUtilities
 
-public enum PhotoViewTapAction {
-  case toggleImmersiveMode
-  case dismiss
-}
-
-public enum PhotoImmersiveMode {
-  case normal
-  case immersive
-}
-
 public enum PhotoViewContentPosition {
   case top
   case center
@@ -58,46 +48,14 @@ open class PhotoViewConfiguration {
     self.notificationCenter = notificationCenter
   }
 
-  public private(set) var immersiveMode: PhotoImmersiveMode = .normal {
-    didSet {
-      notificationCenter.post(name: PhotoViewConfiguration.immersiveModeDidChange, object: self)
-    }
-  }
-
   public var longestPreviewingContentSize: CGSize = CGSize(width: 1, height: 6)
 
   /// for placeholder or content size, useful for 3d touch
   public var hintImage: UIImage?
-
-  public var viewTapAction: PhotoViewTapAction = .toggleImmersiveMode
-
-  public var defaultImmersiveMode: PhotoImmersiveMode = .normal
-
-  public var enabledImmersiveMode: [PhotoImmersiveMode] = [.normal, .immersive]
   
-  public var checkImplementation: Bool = true
-
-  public func nextImmersiveMode() {
-    precondition(enabledImmersiveMode.count > 0)
-    if enabledImmersiveMode.contains(immersiveMode) {
-      let future = enabledImmersiveMode.nextElement(of: immersiveMode, forward: true, loop: true)!
-      immersiveMode = future
-    } else {
-      let future = enabledImmersiveMode.nextElement(of: enabledImmersiveMode.first!, forward: true, loop: true)!
-      immersiveMode = future
-    }
-  }
-
   public var interactiveDismissScaleFactor: CGFloat = 0.5
 
   public var interactiveDismissDirection: PhotoViewDismissDirection = .all
-
-  public func reloadImmersiveMode(_ reset: Bool) {
-    let state = reset ? defaultImmersiveMode : immersiveMode
-    if enabledImmersiveMode.contains(state) {
-      immersiveMode = state
-    }
-  }
 
   public var convertIndexPathFromUserToPage: ((_ userIndexPath: IndexPath, _ desiredLength: Int) -> IndexPath)?
 

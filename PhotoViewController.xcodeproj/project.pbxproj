@@ -12,6 +12,8 @@
 		9933234D2132407B00F269D1 /* GestureRecognizerState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9933234C2132407B00F269D1 /* GestureRecognizerState.swift */; };
 		9933234F213240B600F269D1 /* CGAffineTransform.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9933234E213240B600F269D1 /* CGAffineTransform.swift */; };
 		99332351213240DF00F269D1 /* TypeAlias.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99332350213240DF00F269D1 /* TypeAlias.swift */; };
+		994D525D2377CAD20092CCFE /* Array.swift in Sources */ = {isa = PBXBuildFile; fileRef = 994D525C2377CAD20092CCFE /* Array.swift */; };
+		994D525F2377CB060092CCFE /* ResourceSequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 994D525E2377CB060092CCFE /* ResourceSequence.swift */; };
 		999B0F21211D325D00598F1F /* CGSize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 999B0F20211D325D00598F1F /* CGSize.swift */; };
 		99C55792212BDE9D00C50142 /* placeholder.png in Resources */ = {isa = PBXBuildFile; fileRef = 99C55791212BDE9D00C50142 /* placeholder.png */; };
 		99E0726721213183005154AA /* UIViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99E0726621213183005154AA /* UIViewController.swift */; };
@@ -39,7 +41,6 @@
 		99F9EE6C21196EDB005CA7F8 /* SettingViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE6B21196EDA005CA7F8 /* SettingViewController.swift */; };
 		99F9EE6E21196EE9005CA7F8 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE6D21196EE9005CA7F8 /* Config.swift */; };
 		99F9EE702119B024005CA7F8 /* CustomPhotoPageController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE6F2119B024005CA7F8 /* CustomPhotoPageController.swift */; };
-		99F9EE76211AFEA0005CA7F8 /* IndexPathSearchable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9EE75211AFEA0005CA7F8 /* IndexPathSearchable.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -94,6 +95,8 @@
 		9933234C2132407B00F269D1 /* GestureRecognizerState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureRecognizerState.swift; sourceTree = "<group>"; };
 		9933234E213240B600F269D1 /* CGAffineTransform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CGAffineTransform.swift; sourceTree = "<group>"; };
 		99332350213240DF00F269D1 /* TypeAlias.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypeAlias.swift; sourceTree = "<group>"; };
+		994D525C2377CAD20092CCFE /* Array.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Array.swift; sourceTree = "<group>"; };
+		994D525E2377CB060092CCFE /* ResourceSequence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResourceSequence.swift; sourceTree = "<group>"; };
 		999B0F20211D325D00598F1F /* CGSize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CGSize.swift; sourceTree = "<group>"; };
 		99C55791212BDE9D00C50142 /* placeholder.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = placeholder.png; sourceTree = "<group>"; };
 		99E0726621213183005154AA /* UIViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewController.swift; sourceTree = "<group>"; };
@@ -122,7 +125,6 @@
 		99F9EE6B21196EDA005CA7F8 /* SettingViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingViewController.swift; sourceTree = "<group>"; };
 		99F9EE6D21196EE9005CA7F8 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		99F9EE6F2119B024005CA7F8 /* CustomPhotoPageController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomPhotoPageController.swift; sourceTree = "<group>"; };
-		99F9EE75211AFEA0005CA7F8 /* IndexPathSearchable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndexPathSearchable.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -204,7 +206,7 @@
 			children = (
 				99F9EE502112FB46005CA7F8 /* MediaResource.swift */,
 				99F9EE622117F4BC005CA7F8 /* PhotoViewConfiguration.swift */,
-				99F9EE75211AFEA0005CA7F8 /* IndexPathSearchable.swift */,
+				994D525E2377CB060092CCFE /* ResourceSequence.swift */,
 				9933234A2132404A00F269D1 /* Function.swift */,
 				99332350213240DF00F269D1 /* TypeAlias.swift */,
 				99F9EE642117F50E005CA7F8 /* Extension */,
@@ -245,6 +247,7 @@
 				9933234C2132407B00F269D1 /* GestureRecognizerState.swift */,
 				9933234E213240B600F269D1 /* CGAffineTransform.swift */,
 				993323482132402700F269D1 /* Comparable.swift */,
+				994D525C2377CAD20092CCFE /* Array.swift */,
 			);
 			path = Extension;
 			sourceTree = "<group>";
@@ -383,6 +386,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				993323492132402700F269D1 /* Comparable.swift in Sources */,
+				994D525D2377CAD20092CCFE /* Array.swift in Sources */,
 				9933234F213240B600F269D1 /* CGAffineTransform.swift in Sources */,
 				99F9EE5E2117DEEB005CA7F8 /* Provider.swift in Sources */,
 				99F9EE612117F488005CA7F8 /* PhotoPageController.swift in Sources */,
@@ -396,8 +400,8 @@
 				99F9EE5C2117DECE005CA7F8 /* ZoomOut.swift in Sources */,
 				99F9EE5921143E50005CA7F8 /* ZoomIn.swift in Sources */,
 				9933234B2132404A00F269D1 /* Function.swift in Sources */,
+				994D525F2377CB060092CCFE /* ResourceSequence.swift in Sources */,
 				9933234D2132407B00F269D1 /* GestureRecognizerState.swift in Sources */,
-				99F9EE76211AFEA0005CA7F8 /* IndexPathSearchable.swift in Sources */,
 				99F9EE662117F51D005CA7F8 /* UIScrollView.swift in Sources */,
 				99F9EE532112FC00005CA7F8 /* PhotoShowController.swift in Sources */,
 				99F9EE632117F4BC005CA7F8 /* PhotoViewConfiguration.swift in Sources */,
